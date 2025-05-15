@@ -1,6 +1,8 @@
 const Booking = require('../models/booking.model');
 const Hoarding = require('../models/hoarding.model');
 const { validationResult } = require('express-validator');
+const { s3Client } = require('../config/s3.config');
+const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
 
 // Create a new booking
 exports.createBooking = async (req, res) => {
@@ -138,12 +140,22 @@ exports.uploadProof = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to upload proof for this booking' });
     }
 
-    const { proofImageData } = req.body;
-    if (!proofImageData) {
-      return res.status(400).json({ message: 'Proof image data is required' });
+    if (!req.file) {
+      return res.status(400).json({ message: 'Proof image is required' });
     }
 
-    booking.proofImageData = Buffer.from(proofImageData, 'base64');
+    // Delete old proof image from S3 if exists
+    if (booking.proofImage && booking.proofImage.key) {
+      await s3Client.send(new DeleteObjectCommand({
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: booking.proofImage.key
+      }));
+    }
+
+    booking.proofImage = {
+      url: req.file.location,
+      key: req.file.key
+    };
     booking.proofUploadedAt = new Date();
     await booking.save();
 

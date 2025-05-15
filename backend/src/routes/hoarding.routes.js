@@ -1,6 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const { auth, authorize } = require('../middleware/auth.middleware');
+const { upload } = require('../config/s3.config');
 const hoardingController = require('../controllers/hoarding.controller');
 
 const router = express.Router();
@@ -43,10 +44,7 @@ const hoardingValidation = [
     .withMessage('State is required'),
   body('location.coordinates.coordinates')
     .isArray({ min: 2, max: 2 })
-    .withMessage('Coordinates must be an array of [longitude, latitude]'),
-  body('imageData')
-    .notEmpty()
-    .withMessage('Image data is required')
+    .withMessage('Coordinates must be an array of [longitude, latitude]')
 ];
 
 // Public routes
@@ -56,24 +54,14 @@ router.get('/:id', hoardingController.getHoardingById);
 // Protected routes
 router.use(auth);
 
-// Owner routes
-router.post(
-  '/',
-  authorize('owner'),
-  hoardingValidation,
-  hoardingController.createHoarding
-);
+// Create hoarding with image upload
+router.post('/', upload.single('image'), hoardingValidation, hoardingController.createHoarding);
 
-router.get('/my-hoardings', authorize('owner'), hoardingController.getMyHoardings);
+// Update hoarding with image upload
+router.patch('/:id', upload.single('image'), hoardingValidation, hoardingController.updateHoarding);
 
-router.patch(
-  '/:id',
-  authorize('owner'),
-  hoardingValidation,
-  hoardingController.updateHoarding
-);
-
-router.delete('/:id', authorize('owner'), hoardingController.deleteHoarding);
+// Delete hoarding
+router.delete('/:id', hoardingController.deleteHoarding);
 
 // Admin routes
 router.patch(

@@ -15,9 +15,15 @@ const hoardingSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  imageData: {
-    type: Buffer,
-    required: true
+  image: {
+    url: {
+      type: String,
+      required: true
+    },
+    key: {
+      type: String,
+      required: true
+    }
   },
   specs: {
     width: {

@@ -1,6 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const { auth, authorize } = require('../middleware/auth.middleware');
+const { upload } = require('../config/s3.config');
 const bookingController = require('../controllers/booking.controller');
 
 const router = express.Router();
@@ -60,7 +61,7 @@ router.patch(
 router.patch(
   '/:id/proof',
   authorize('owner'),
-  body('proofImageData').notEmpty().withMessage('Proof image data is required'),
+  upload.single('proofImage'),
   bookingController.uploadProof
 );
 

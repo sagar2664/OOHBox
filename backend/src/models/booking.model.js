@@ -33,8 +33,13 @@ const bookingSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
-  proofImageData: {
-    type: Buffer
+  proofImage: {
+    url: {
+      type: String
+    },
+    key: {
+      type: String
+    }
   },
   proofUploadedAt: {
     type: Date

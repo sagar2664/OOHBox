@@ -1,4 +1,6 @@
 const Hoarding = require('../models/hoarding.model');
+const { s3Client } = require('../config/s3.config');
+const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { validationResult } = require('express-validator');
 
 // Create a new hoarding
@@ -9,15 +11,17 @@ exports.createHoarding = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { imageData, ...rest } = req.body;
-    if (!imageData) {
-      return res.status(400).json({ message: 'Image data is required' });
+    if (!req.file) {
+      return res.status(400).json({ message: 'Image is required' });
     }
 
     const hoarding = new Hoarding({
-      ...rest,
+      ...req.body,
       ownerId: req.user._id,
-      imageData: Buffer.from(imageData, 'base64')
+      image: {
+        url: req.file.location,
+        key: req.file.key
+      }
     });
 
     await hoarding.save();
@@ -102,8 +106,23 @@ exports.updateHoarding = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to update this hoarding' });
     }
 
-    const { imageData, ...updates } = req.body;
-    if (imageData) updates.imageData = Buffer.from(imageData, 'base64');
+    const updates = { ...req.body };
+
+    // Handle new image upload
+    if (req.file) {
+      // Delete old image from S3
+      if (hoarding.image && hoarding.image.key) {
+        await s3Client.send(new DeleteObjectCommand({
+          Bucket: process.env.AWS_BUCKET_NAME,
+          Key: hoarding.image.key
+        }));
+      }
+
+      updates.image = {
+        url: req.file.location,
+        key: req.file.key
+      };
+    }
 
     const updatedHoarding = await Hoarding.findByIdAndUpdate(
       req.params.id,
@@ -128,6 +147,14 @@ exports.deleteHoarding = async (req, res) => {
     // Check ownership
     if (hoarding.ownerId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to delete this hoarding' });
+    }
+
+    // Delete image from S3
+    if (hoarding.image && hoarding.image.key) {
+      await s3Client.send(new DeleteObjectCommand({
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: hoarding.image.key
+      }));
     }
 
     await hoarding.remove();

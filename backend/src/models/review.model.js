@@ -42,10 +42,9 @@ reviewSchema.pre('findOneAndUpdate', function() {
   this.set({ updatedAt: new Date() });
 });
 
-// Index for efficient querying
+// Create indexes
 reviewSchema.index({ hoardingId: 1 });
 reviewSchema.index({ buyerId: 1 });
-reviewSchema.index({ bookingId: 1 }, { unique: true });
 
 // Middleware to update hoarding's average rating and review count
 reviewSchema.post('save', async function() {
