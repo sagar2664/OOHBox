@@ -1,0 +1,180 @@
+const Booking = require('../models/booking.model');
+const Hoarding = require('../models/hoarding.model');
+const { validationResult } = require('express-validator');
+
+// Create a new booking
+exports.createBooking = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { hoardingId, startDate, endDate, notes } = req.body;
+
+    // Check if hoarding exists and is approved
+    const hoarding = await Hoarding.findOne({ _id: hoardingId, status: 'approved' });
+    if (!hoarding) {
+      return res.status(404).json({ message: 'Hoarding not found or not approved' });
+    }
+
+    // Check for overlapping bookings
+    const overlappingBooking = await Booking.findOne({
+      hoardingId,
+      status: { $in: ['pending', 'accepted'] },
+      $or: [
+        {
+          startDate: { $lte: new Date(endDate) },
+          endDate: { $gte: new Date(startDate) }
+        }
+      ]
+    });
+
+    if (overlappingBooking) {
+      return res.status(400).json({ message: 'Hoarding is already booked for these dates' });
+    }
+
+    // Calculate total price
+    const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
+    const totalPrice = hoarding.price * days;
+
+    const booking = new Booking({
+      hoardingId,
+      buyerId: req.user._id,
+      startDate,
+      endDate,
+      notes,
+      totalPrice
+    });
+
+    await booking.save();
+    res.status(201).json({ message: 'Booking created successfully', booking });
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating booking', error: error.message });
+  }
+};
+
+// Get user's bookings
+exports.getMyBookings = async (req, res) => {
+  try {
+    const { status, page = 1, limit = 10 } = req.query;
+    const query = {};
+
+    if (req.user.role === 'buyer') {
+      query.buyerId = req.user._id;
+    } else if (req.user.role === 'owner') {
+      const hoardings = await Hoarding.find({ ownerId: req.user._id });
+      query.hoardingId = { $in: hoardings.map(h => h._id) };
+    }
+
+    if (status) {
+      query.status = status;
+    }
+
+    const bookings = await Booking.find(query)
+      .populate('hoardingId', 'name image location')
+      .populate('buyerId', 'username email phoneNumber')
+      .skip((page - 1) * limit)
+      .limit(Number(limit))
+      .sort({ createdAt: -1 });
+
+    const total = await Booking.countDocuments(query);
+
+    res.json({
+      bookings,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalBookings: total
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching bookings', error: error.message });
+  }
+};
+
+// Update booking status
+exports.updateBookingStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['accepted', 'rejected', 'completed', 'cancelled'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Check authorization
+    const hoarding = await Hoarding.findById(booking.hoardingId);
+    if (req.user.role === 'owner' && hoarding.ownerId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to update this booking' });
+    }
+
+    // Validate status transition
+    if (status === 'completed' && !booking.proofImage) {
+      return res.status(400).json({ message: 'Proof image is required to complete booking' });
+    }
+
+    booking.status = status;
+    await booking.save();
+
+    res.json({ message: 'Booking status updated successfully', booking });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating booking status', error: error.message });
+  }
+};
+
+// Upload proof of display
+exports.uploadProof = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Check authorization
+    const hoarding = await Hoarding.findById(booking.hoardingId);
+    if (hoarding.ownerId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to upload proof for this booking' });
+    }
+
+    const { proofImageData } = req.body;
+    if (!proofImageData) {
+      return res.status(400).json({ message: 'Proof image data is required' });
+    }
+
+    booking.proofImageData = Buffer.from(proofImageData, 'base64');
+    booking.proofUploadedAt = new Date();
+    await booking.save();
+
+    res.json({ message: 'Proof uploaded successfully', booking });
+  } catch (error) {
+    res.status(500).json({ message: 'Error uploading proof', error: error.message });
+  }
+};
+
+// Get booking by ID
+exports.getBookingById = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .populate('hoardingId', 'name image location')
+      .populate('buyerId', 'username email phoneNumber');
+
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Check authorization
+    const hoarding = await Hoarding.findById(booking.hoardingId);
+    if (
+      req.user.role === 'buyer' && booking.buyerId.toString() !== req.user._id.toString() ||
+      req.user.role === 'owner' && hoarding.ownerId.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({ message: 'Not authorized to view this booking' });
+    }
+
+    res.json(booking);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching booking', error: error.message });
+  }
+}; 
