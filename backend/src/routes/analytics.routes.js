@@ -7,7 +7,7 @@ const router = express.Router();
 // Protected routes
 router.use(auth);
 
-router.get('/owner', authorize('owner'), analyticsController.getOwnerAnalytics);
+router.get('/vendor', authorize('vendor'), analyticsController.getVendorAnalytics);
 router.get('/admin', authorize('admin'), analyticsController.getAdminAnalytics);
 
 module.exports = router; 

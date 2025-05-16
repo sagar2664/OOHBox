@@ -17,7 +17,7 @@ exports.createHoarding = async (req, res) => {
 
     const hoarding = new Hoarding({
       ...req.body,
-      ownerId: req.user._id,
+      vendorId: req.user._id,
       image: {
         url: req.file.location,
         key: req.file.key
@@ -54,7 +54,7 @@ exports.getHoardings = async (req, res) => {
     }
 
     const hoardings = await Hoarding.find(query)
-      .populate('ownerId', 'username email phoneNumber')
+      .populate('vendorId', 'username email phoneNumber')
       .skip((page - 1) * limit)
       .limit(Number(limit))
       .sort({ createdAt: -1 });
@@ -76,7 +76,7 @@ exports.getHoardings = async (req, res) => {
 exports.getHoardingById = async (req, res) => {
   try {
     const hoarding = await Hoarding.findById(req.params.id)
-      .populate('ownerId', 'username email phoneNumber');
+      .populate('vendorId', 'username email phoneNumber');
 
     if (!hoarding) {
       return res.status(404).json({ message: 'Hoarding not found' });
@@ -102,7 +102,7 @@ exports.updateHoarding = async (req, res) => {
     }
 
     // Check ownership
-    if (hoarding.ownerId.toString() !== req.user._id.toString()) {
+    if (hoarding.vendorId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to update this hoarding' });
     }
 
@@ -145,7 +145,7 @@ exports.deleteHoarding = async (req, res) => {
     }
 
     // Check ownership
-    if (hoarding.ownerId.toString() !== req.user._id.toString()) {
+    if (hoarding.vendorId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to delete this hoarding' });
     }
 
@@ -164,10 +164,10 @@ exports.deleteHoarding = async (req, res) => {
   }
 };
 
-// Get owner's hoardings
+// Get vendor's hoardings
 exports.getMyHoardings = async (req, res) => {
   try {
-    const hoardings = await Hoarding.find({ ownerId: req.user._id })
+    const hoardings = await Hoarding.find({ vendorId: req.user._id })
       .sort({ createdAt: -1 });
 
     res.json(hoardings);
@@ -184,15 +184,17 @@ exports.updateHoardingStatus = async (req, res) => {
       return res.status(400).json({ message: 'Invalid status' });
     }
 
-    const hoarding = await Hoarding.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true, runValidators: true }
-    );
-
+    const hoarding = await Hoarding.findById(req.params.id);
     if (!hoarding) {
       return res.status(404).json({ message: 'Hoarding not found' });
     }
+
+    if (hoarding.status !== 'pending') {
+      return res.status(400).json({ message: 'Only pending hoardings can be approved or rejected' });
+    }
+
+    hoarding.status = status;
+    await hoarding.save();
 
     res.json({ message: `Hoarding ${status} successfully`, hoarding });
   } catch (error) {

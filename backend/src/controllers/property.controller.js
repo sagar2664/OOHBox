@@ -7,7 +7,7 @@ exports.createProperty = async (req, res) => {
   try {
     const propertyData = {
       ...req.body,
-      owner: req.user._id,
+      vendor: req.user._id,
       images: req.files.map(file => ({
         url: file.location,
         key: file.key
@@ -25,7 +25,7 @@ exports.createProperty = async (req, res) => {
 exports.getAllProperties = async (req, res) => {
   try {
     const properties = await Property.find()
-      .populate('owner', 'username email')
+      .populate('vendor', 'firstName lastName email')
       .populate('reviews');
     res.json(properties);
   } catch (error) {
@@ -37,7 +37,7 @@ exports.getAllProperties = async (req, res) => {
 exports.getPropertyById = async (req, res) => {
   try {
     const property = await Property.findById(req.params.id)
-      .populate('owner', 'username email')
+      .populate('vendor', 'firstName lastName email')
       .populate('reviews')
       .populate('bookings');
     
@@ -60,7 +60,7 @@ exports.updateProperty = async (req, res) => {
       return res.status(404).json({ message: 'Property not found' });
     }
 
-    if (property.owner.toString() !== req.user._id.toString()) {
+    if (property.vendor.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to update this property' });
     }
 
@@ -96,7 +96,7 @@ exports.deleteProperty = async (req, res) => {
       return res.status(404).json({ message: 'Property not found' });
     }
 
-    if (property.owner.toString() !== req.user._id.toString()) {
+    if (property.vendor.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to delete this property' });
     }
 
@@ -124,7 +124,7 @@ exports.deletePropertyImage = async (req, res) => {
       return res.status(404).json({ message: 'Property not found' });
     }
 
-    if (property.owner.toString() !== req.user._id.toString()) {
+    if (property.vendor.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to delete images from this property' });
     }
 

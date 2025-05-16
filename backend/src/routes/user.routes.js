@@ -30,11 +30,16 @@ router.get('/profile', async (req, res) => {
 
 // Update user profile
 router.patch('/profile', [
-  body('username')
+  body('firstName')
     .optional()
     .trim()
-    .isLength({ min: 3 })
-    .withMessage('Username must be at least 3 characters long'),
+    .isLength({ min: 2 })
+    .withMessage('First name must be at least 2 characters long'),
+  body('lastName')
+    .optional()
+    .trim()
+    .isLength({ min: 2 })
+    .withMessage('Last name must be at least 2 characters long'),
   body('email')
     .optional()
     .isEmail()
@@ -47,7 +52,7 @@ router.patch('/profile', [
 ], async (req, res) => {
   try {
     const updates = Object.keys(req.body);
-    const allowedUpdates = ['username', 'email', 'phoneNumber'];
+    const allowedUpdates = ['firstName', 'lastName', 'email', 'phoneNumber'];
     const isValidOperation = updates.every(update => allowedUpdates.includes(update));
 
     if (!isValidOperation) {

@@ -6,6 +6,18 @@ const hoardingController = require('../controllers/hoarding.controller');
 
 const router = express.Router();
 
+// Middleware to parse JSON data from form-data
+const parseJsonData = (req, res, next) => {
+  try {
+    if (req.body.data) {
+      req.body = JSON.parse(req.body.data);
+    }
+    next();
+  } catch (error) {
+    return res.status(400).json({ message: 'Invalid JSON data' });
+  }
+};
+
 // Validation middleware
 const hoardingValidation = [
   body('name')
@@ -54,11 +66,14 @@ router.get('/:id', hoardingController.getHoardingById);
 // Protected routes
 router.use(auth);
 
+// Get vendor's hoardings
+router.get('/my-hoardings', hoardingController.getMyHoardings);
+
 // Create hoarding with image upload
-router.post('/', upload.single('image'), hoardingValidation, hoardingController.createHoarding);
+router.post('/', upload.single('image'), parseJsonData, hoardingValidation, hoardingController.createHoarding);
 
 // Update hoarding with image upload
-router.patch('/:id', upload.single('image'), hoardingValidation, hoardingController.updateHoarding);
+router.patch('/:id', upload.single('image'), parseJsonData, hoardingValidation, hoardingController.updateHoarding);
 
 // Delete hoarding
 router.delete('/:id', hoardingController.deleteHoarding);

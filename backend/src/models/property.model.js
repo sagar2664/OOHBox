@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const propertySchema = new mongoose.Schema({
-  owner: {
+  vendor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true

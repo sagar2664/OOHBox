@@ -54,7 +54,7 @@ exports.getHoardingReviews = async (req, res) => {
     const hoardingId = req.params.hoardingId;
 
     const reviews = await Review.find({ hoardingId })
-      .populate('buyerId', 'username')
+      .populate('buyerId', 'firstName lastName')
       .skip((page - 1) * limit)
       .limit(Number(limit))
       .sort({ createdAt: -1 });

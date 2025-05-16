@@ -50,10 +50,10 @@ router.post(
 router.get('/me', bookingController.getMyBookings);
 router.get('/:id', bookingController.getBookingById);
 
-// Owner routes
+// Vendor routes
 router.patch(
   '/:id/status',
-  authorize('owner'),
+  authorize('vendor'),
   body('status').isIn(['accepted', 'rejected', 'completed', 'cancelled']),
   bookingController.updateBookingStatus
 );

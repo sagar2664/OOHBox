@@ -3,13 +3,13 @@ const Hoarding = require('../models/hoarding.model');
 const User = require('../models/user.model');
 const Review = require('../models/review.model');
 
-// Get owner analytics
-exports.getOwnerAnalytics = async (req, res) => {
+// Get vendor analytics
+exports.getVendorAnalytics = async (req, res) => {
   try {
-    const ownerId = req.user._id;
+    const vendorId = req.user._id;
 
-    // Get owner's hoardings
-    const hoardings = await Hoarding.find({ ownerId });
+    // Get vendor's hoardings
+    const hoardings = await Hoarding.find({ vendorId });
     const hoardingIds = hoardings.map(h => h._id);
 
     // Get booking statistics
