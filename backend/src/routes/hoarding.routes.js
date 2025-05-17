@@ -61,13 +61,24 @@ const hoardingValidation = [
 
 // Public routes
 router.get('/', hoardingController.getHoardings);
+
+
+// Get vendor's hoardings
+router.get('/myhoardings', auth, hoardingController.getMyHoardings);
+
 router.get('/:id', hoardingController.getHoardingById);
 
 // Protected routes
 router.use(auth);
 
-// Get vendor's hoardings
-router.get('/my-hoardings', hoardingController.getMyHoardings);
+
+// Admin routes
+router.patch(
+  '/:id/status',
+  authorize('admin'),
+  body('status').isIn(['approved', 'rejected']),
+  hoardingController.updateHoardingStatus
+);
 
 // Create hoarding with image upload
 router.post('/', upload.single('image'), parseJsonData, hoardingValidation, hoardingController.createHoarding);
@@ -78,12 +89,6 @@ router.patch('/:id', upload.single('image'), parseJsonData, hoardingValidation, 
 // Delete hoarding
 router.delete('/:id', hoardingController.deleteHoarding);
 
-// Admin routes
-router.patch(
-  '/:id/status',
-  authorize('admin'),
-  body('status').isIn(['approved', 'rejected']),
-  hoardingController.updateHoardingStatus
-);
+
 
 module.exports = router; 

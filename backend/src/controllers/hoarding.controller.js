@@ -167,10 +167,22 @@ exports.deleteHoarding = async (req, res) => {
 // Get vendor's hoardings
 exports.getMyHoardings = async (req, res) => {
   try {
+    const { page = 1, limit = 10 } = req.query;
+
     const hoardings = await Hoarding.find({ vendorId: req.user._id })
+      .populate('vendorId', 'username email phoneNumber')
+      .skip((page - 1) * limit)
+      .limit(Number(limit))
       .sort({ createdAt: -1 });
 
-    res.json(hoardings);
+    const total = await Hoarding.countDocuments({ vendorId: req.user._id });
+
+    res.json({
+      hoardings,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalHoardings: total
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching your hoardings', error: error.message });
   }
