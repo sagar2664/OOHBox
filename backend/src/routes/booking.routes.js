@@ -54,13 +54,14 @@ router.get('/:id', bookingController.getBookingById);
 router.patch(
   '/:id/status',
   authorize('vendor'),
+  upload.single('proofImage'),
   body('status').isIn(['accepted', 'rejected', 'completed', 'cancelled']),
   bookingController.updateBookingStatus
 );
 
 router.patch(
   '/:id/proof',
-  authorize('owner'),
+  authorize('vendor'),
   upload.single('proofImage'),
   bookingController.uploadProof
 );
