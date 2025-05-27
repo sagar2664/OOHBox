@@ -1,12 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { getHoardingById, getHoardingReviews } from "../api/api";
+import { useParams, useNavigate } from "react-router-dom";
+import { getHoardingById, getHoardingReviews, createBooking } from "../api/api";
+import { useAuth } from "../hooks/useAuth";
 
 export default function HoardingDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [hoarding, setHoarding] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showBooking, setShowBooking] = useState(false);
+  const [bookingForm, setBookingForm] = useState({ startDate: "", endDate: "", notes: "" });
+  const [bookingError, setBookingError] = useState("");
+  const [bookingSuccess, setBookingSuccess] = useState("");
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const { user, token } = useAuth();
 
   useEffect(() => {
     setLoading(true);
@@ -18,6 +26,29 @@ export default function HoardingDetail() {
       setReviews(data.reviews || []);
     });
   }, [id]);
+
+  const handleBookingChange = e => setBookingForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const handleBookingSubmit = async e => {
+    e.preventDefault();
+    setBookingError("");
+    setBookingSuccess("");
+    setBookingLoading(true);
+    const res = await createBooking({
+      hoardingId: id,
+      startDate: bookingForm.startDate,
+      endDate: bookingForm.endDate,
+      notes: bookingForm.notes,
+    }, token);
+    setBookingLoading(false);
+    if (res.booking) {
+      setShowBooking(false);
+      setBookingForm({ startDate: "", endDate: "", notes: "" });
+      navigate("/my-bookings");
+    } else {
+      setBookingError(res.message || (res.errors && res.errors[0]?.msg) || "Booking failed");
+    }
+  };
 
   if (loading || !hoarding) {
     return <div className="flex justify-center items-center min-h-[60vh]">Loading...</div>;
@@ -53,7 +84,15 @@ export default function HoardingDetail() {
           <div className="bg-white rounded shadow p-6 mb-4 flex flex-col items-center">
             <div className="text-gray-500 text-sm mb-1">Daily Rental</div>
             <div className="text-2xl font-bold text-blue-600 mb-4">₹{hoarding.price} <span className="text-base text-gray-500">/day</span></div>
-            <button className="bg-blue-600 text-white px-6 py-2 rounded font-semibold w-full">Book Now</button>
+            {user && user.role === "buyer" ? (
+              <button className="bg-blue-600 text-white px-6 py-2 rounded font-semibold w-full" onClick={() => setShowBooking(true)}>
+                Book Now
+              </button>
+            ) : (
+              <button className="bg-gray-300 text-gray-500 px-6 py-2 rounded font-semibold w-full cursor-not-allowed" disabled>
+                Login as Buyer to Book
+              </button>
+            )}
             <div className="text-xs text-gray-400 mt-2">Secure Booking</div>
           </div>
           {/* Location Box */}
@@ -64,6 +103,29 @@ export default function HoardingDetail() {
           </div>
         </div>
       </div>
+      {/* Booking Modal */}
+      {showBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative">
+            <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-600" onClick={() => setShowBooking(false)}>&times;</button>
+            <h3 className="text-xl font-bold mb-4">Book Hoarding</h3>
+            {bookingError && <div className="text-red-500 mb-2">{bookingError}</div>}
+            {bookingSuccess && <div className="text-green-600 mb-2">{bookingSuccess}</div>}
+            <form onSubmit={handleBookingSubmit} className="flex flex-col gap-3">
+              <label className="text-sm font-medium">Start Date
+                <input type="date" name="startDate" value={bookingForm.startDate} onChange={handleBookingChange} className="border rounded px-3 py-2 w-full mt-1" required />
+              </label>
+              <label className="text-sm font-medium">End Date
+                <input type="date" name="endDate" value={bookingForm.endDate} onChange={handleBookingChange} className="border rounded px-3 py-2 w-full mt-1" required />
+              </label>
+              <label className="text-sm font-medium">Notes (optional)
+                <textarea name="notes" value={bookingForm.notes} onChange={handleBookingChange} className="border rounded px-3 py-2 w-full mt-1" maxLength={500} rows={2} />
+              </label>
+              <button className="bg-blue-600 text-white py-2 rounded font-semibold mt-2" disabled={bookingLoading}>{bookingLoading ? "Booking..." : "Confirm Booking"}</button>
+            </form>
+          </div>
+        </div>
+      )}
       {/* Availability Calendar Placeholder */}
       <div className="bg-white rounded shadow p-4 mt-8 mb-6">
         <div className="font-semibold mb-2">Availability Calendar</div>

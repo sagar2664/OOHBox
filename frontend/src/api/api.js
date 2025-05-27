@@ -26,3 +26,20 @@ export const getHoardingReviews = (hoardingId, params = {}) => {
   const query = new URLSearchParams(params).toString();
   return fetch(`${API_URL}/reviews/hoarding/${hoardingId}?${query}`).then(res => res.json());
 };
+
+export const createBooking = (data, token) =>
+  fetch(`${API_URL}/bookings`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(data),
+  }).then(res => res.json());
+
+export const getMyBookings = (token) =>
+  fetch(`${API_URL}/bookings/me`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  }).then(res => res.json());

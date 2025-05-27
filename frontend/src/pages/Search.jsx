@@ -31,7 +31,7 @@ export default function Search() {
       ...Object.fromEntries([...searchParams]),
       page,
       limit: 8,
-      status: "pending",
+      status: "approved",
     };
     getHoardings(params).then(data => {
       setHoardings(data.hoardings || []);
