@@ -176,7 +176,7 @@ exports.getMyHoardings = async (req, res) => {
       .sort({ createdAt: -1 });
 
     const total = await Hoarding.countDocuments({ vendorId: req.user._id });
-
+    //console.log(hoardings);
     res.json({
       hoardings,
       currentPage: page,

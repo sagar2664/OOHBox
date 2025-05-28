@@ -196,4 +196,17 @@ exports.getBookingById = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Error fetching booking', error: error.message });
   }
+};
+
+// Get bookings for a specific hoarding (for availability calendar)
+exports.getBookingsForHoarding = async (req, res) => {
+  try {
+    const bookings = await Booking.find({
+      hoardingId: req.params.hoardingId,
+      status: { $in: ['pending', 'accepted'] }
+    }).select('startDate endDate status');
+    res.json({ bookings });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching bookings', error: error.message });
+  }
 }; 

@@ -101,6 +101,12 @@ export default function HoardingDetail() {
             <div>{hoarding.location?.address}</div>
             <div>{hoarding.location?.city}, {hoarding.location?.state}</div>
           </div>
+          {/* Vendor Contact */}
+          <div className="bg-white rounded shadow p-4 text-sm mt-4">
+            <div className="font-semibold mb-1">Vendor Contact</div>
+            <div>Email: <a href={`mailto:${hoarding.vendorId?.email}`} className="text-blue-600">{hoarding.vendorId?.email}</a></div>
+            <div>Phone: <a href={`tel:${hoarding.vendorId?.phoneNumber}`} className="text-blue-600">{hoarding.vendorId?.phoneNumber}</a></div>
+          </div>
         </div>
       </div>
       {/* Booking Modal */}
@@ -126,11 +132,6 @@ export default function HoardingDetail() {
           </div>
         </div>
       )}
-      {/* Availability Calendar Placeholder */}
-      <div className="bg-white rounded shadow p-4 mt-8 mb-6">
-        <div className="font-semibold mb-2">Availability Calendar</div>
-        <div className="h-24 flex items-center justify-center text-gray-400">[Calendar Placeholder]</div>
-      </div>
       {/* Reviews */}
       <div className="bg-white rounded shadow p-4 mb-6">
         <div className="flex items-center mb-2">

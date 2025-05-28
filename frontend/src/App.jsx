@@ -8,6 +8,7 @@ import Search from "./pages/Search";
 import MyBookings from "./pages/MyBookings";
 import Profile from "./pages/Profile";
 import HoardingDetail from "./pages/HoardingDetail";
+import VendorDashboard from "./pages/VendorDashboard";
 import { AuthProvider } from "./hooks/useAuth";
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/hoardings/:id" element={<HoardingDetail />} />
+          <Route path="/vendor-dashboard" element={<VendorDashboard />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

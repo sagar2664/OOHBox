@@ -36,6 +36,8 @@ const bookingValidation = [
     .withMessage('Notes must not exceed 500 characters')
 ];
 
+// Public route to get bookings for a specific hoarding (for availability calendar)
+router.get('/hoarding/:hoardingId', bookingController.getBookingsForHoarding);
 // Protected routes
 router.use(auth);
 
@@ -49,6 +51,7 @@ router.post(
 
 router.get('/me', bookingController.getMyBookings);
 router.get('/:id', bookingController.getBookingById);
+
 
 // Vendor routes
 router.patch(
@@ -65,5 +68,7 @@ router.patch(
   upload.single('proofImage'),
   bookingController.uploadProof
 );
+
+
 
 module.exports = router; 

@@ -43,3 +43,27 @@ export const getMyBookings = (token) =>
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   }).then(res => res.json());
+
+export const getHoardingBookings = (hoardingId) =>
+  fetch(`${API_URL}/bookings/hoarding/${hoardingId}`).then(res => res.json());
+
+export const getVendorHoardings = (token) =>
+  fetch(`${API_URL}/hoardings/myhoardings`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  }).then(res => res.json());
+
+export const getVendorBookings = (token) =>
+  fetch(`${API_URL}/bookings`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  }).then(res => res.json());
+
+export const getVendorAnalytics = (token) =>
+  fetch(`${API_URL}/analytics/vendor`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  }).then(res => res.json());
