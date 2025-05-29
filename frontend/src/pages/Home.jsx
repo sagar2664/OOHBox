@@ -12,7 +12,7 @@ export default function Home() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    getHoardings({ limit: 6, status: "approved" }).then(data => setFeatured(data.hoardings || []));
+    getHoardings({ limit: 6, status: "pending" }).then(data => setFeatured(data.hoardings || []));
   }, []);
 
   const handleSearch = (e) => {

@@ -18,24 +18,52 @@ function StatusBadge({ status }) {
 }
 
 export default function VendorDashboard() {
-  const { token } = useAuth();
+  const { token, loading: authLoading } = useAuth();
   const [hoardings, setHoardings] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
   useEffect(() => {
-    setLoading(true);
-    Promise.all([
-      getVendorHoardings(token),
-      getVendorBookings(token)
-    ]).then(([hRes, bRes]) => {
-      setHoardings(hRes.hoardings || []);
-      setBookings(bRes.bookings || []);
-      setLoading(false);
-    });
-  }, [token]);
+    // Only make the API call if we have a token and auth is not loading
+    if (!authLoading && token) {
+      console.log('Making API calls with token:', token);
+      setLoading(true);
+      setError(null);
+      
+      Promise.all([
+        getVendorHoardings(token).catch(err => {
+          console.error('Error fetching hoardings:', err);
+          setError(err.message);
+          return { hoardings: [] };
+        }),
+        getVendorBookings(token).catch(err => {
+          console.error('Error fetching bookings:', err);
+          return { bookings: [] };
+        })
+      ]).then(([hRes, bRes]) => {
+        console.log('Hoardings response:', hRes);
+        setHoardings(hRes.hoardings || []);
+        setBookings(bRes.bookings || []);
+        setLoading(false);
+      });
+    }
+  }, [token, authLoading]);
 
-  //console.log(token);
+  // Show loading state while auth is loading or data is being fetched
+  if (authLoading || loading) {
+    return <div className="text-center py-8">Loading...</div>;
+  }
+
+  // Show error if there is one
+  if (error) {
+    return <div className="text-center py-8 text-red-600">Error: {error}</div>;
+  }
+
+  // Show message if not logged in
+  if (!token) {
+    return <div className="text-center py-8 text-red-600">Please log in to view your dashboard.</div>;
+  }
 
   // Split bookings
   const bookingRequests = bookings.filter(b => b.status === "pending");

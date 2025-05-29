@@ -75,7 +75,7 @@ exports.getMyBookings = async (req, res) => {
 
     const bookings = await Booking.find(query)
       .populate('hoardingId', 'name image location')
-      .populate('buyerId', 'username email phoneNumber')
+      .populate('buyerId', 'firstName lastName email phoneNumber')
       .skip((page - 1) * limit)
       .limit(Number(limit))
       .sort({ createdAt: -1 });
