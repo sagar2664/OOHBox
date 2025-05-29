@@ -9,6 +9,8 @@ import MyBookings from "./pages/MyBookings";
 import Profile from "./pages/Profile";
 import HoardingDetail from "./pages/HoardingDetail";
 import VendorDashboard from "./pages/VendorDashboard";
+import AddHoarding from "./pages/AddHoarding";
+import EditHoarding from "./pages/EditHoarding";
 import { AuthProvider } from "./hooks/useAuth";
 
 export default function App() {
@@ -25,6 +27,8 @@ export default function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/hoardings/:id" element={<HoardingDetail />} />
           <Route path="/vendor-dashboard" element={<VendorDashboard />} />
+          <Route path="/add-hoarding" element={<AddHoarding />} />
+          <Route path="/edit-hoarding/:id" element={<EditHoarding />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -55,9 +55,10 @@ export const getMyBookings = (token) =>
 export const getHoardingBookings = (hoardingId) =>
   fetch(`${API_URL}/bookings/hoarding/${hoardingId}`).then(handleResponse);
 
-export const getVendorHoardings = (token) => {
+export const getVendorHoardings = (token, params = {}) => {
   console.log('Making vendor hoardings request with token:', token); // Debug token
-  return fetch(`${API_URL}/hoardings/myhoardings`, {
+  const query = new URLSearchParams(params).toString();
+  return fetch(`${API_URL}/hoardings/myhoardings?${query}`, {
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
@@ -72,9 +73,10 @@ export const getVendorHoardings = (token) => {
   });
 };
 
-export const getVendorBookings = (token) => {
+export const getVendorBookings = (token, params = {}) => {
   console.log('Making vendor bookings request with token:', token); // Debug token
-  return fetch(`${API_URL}/bookings/me`, {
+  const query = new URLSearchParams(params).toString();
+  return fetch(`${API_URL}/bookings/me?${query}`, {
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
@@ -95,3 +97,47 @@ export const getVendorAnalytics = (token) =>
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   }).then(handleResponse);
+
+export const createHoarding = (data, imageFile, token) => {
+  const formData = new FormData();
+  formData.append('data', JSON.stringify(data));
+  if (imageFile) {
+    formData.append('image', imageFile);
+  }
+  return fetch(`${API_URL}/hoardings`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+      // Do not set Content-Type, browser will set it for FormData
+    },
+    body: formData,
+  }).then(async (res) => {
+    const responseData = await res.json();
+    if (!res.ok) {
+      throw new Error(responseData.message || 'Failed to create hoarding');
+    }
+    return responseData;
+  });
+};
+
+export const updateHoarding = (id, data, imageFile, token) => {
+  const formData = new FormData();
+  formData.append('data', JSON.stringify(data));
+  if (imageFile) {
+    formData.append('image', imageFile);
+  }
+  return fetch(`${API_URL}/hoardings/${id}`, {
+    method: 'PATCH',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+      // Do not set Content-Type, browser will set it for FormData
+    },
+    body: formData,
+  }).then(async (res) => {
+    const responseData = await res.json();
+    if (!res.ok) {
+      throw new Error(responseData.message || 'Failed to update hoarding');
+    }
+    return responseData;
+  });
+};

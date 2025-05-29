@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { getVendorHoardings, getVendorBookings } from "../api/api";
 import { useAuth } from "../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 function StatusBadge({ status }) {
   const map = {
@@ -17,12 +18,45 @@ function StatusBadge({ status }) {
   return <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${map[status?.toLowerCase()] || "bg-gray-200 text-gray-600"}`}>{status?.charAt(0).toUpperCase() + status?.slice(1)}</span>;
 }
 
+function Pagination({ currentPage, totalPages, onPageChange }) {
+  return (
+    <div className="flex justify-center items-center gap-2 mt-4">
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="px-3 py-1 rounded bg-gray-100 disabled:opacity-50"
+      >
+        Previous
+      </button>
+      <span className="text-sm">
+        Page {currentPage} of {totalPages}
+      </span>
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="px-3 py-1 rounded bg-gray-100 disabled:opacity-50"
+      >
+        Next
+      </button>
+    </div>
+  );
+}
+
 export default function VendorDashboard() {
   const { token, loading: authLoading } = useAuth();
   const [hoardings, setHoardings] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Pagination states
+  const [hoardingsPage, setHoardingsPage] = useState(1);
+  const [bookingsPage, setBookingsPage] = useState(1);
+  const [completedPage, setCompletedPage] = useState(1);
+  const [totalHoardingsPages, setTotalHoardingsPages] = useState(1);
+  const [totalBookingsPages, setTotalBookingsPages] = useState(1);
+  const [totalCompletedPages, setTotalCompletedPages] = useState(1);
+  const navigate = useNavigate();
   
   useEffect(() => {
     // Only make the API call if we have a token and auth is not loading
@@ -32,23 +66,25 @@ export default function VendorDashboard() {
       setError(null);
       
       Promise.all([
-        getVendorHoardings(token).catch(err => {
+        getVendorHoardings(token, { page: hoardingsPage }).catch(err => {
           console.error('Error fetching hoardings:', err);
           setError(err.message);
-          return { hoardings: [] };
+          return { hoardings: [], totalPages: 1 };
         }),
-        getVendorBookings(token).catch(err => {
+        getVendorBookings(token, { page: bookingsPage }).catch(err => {
           console.error('Error fetching bookings:', err);
-          return { bookings: [] };
+          return { bookings: [], totalPages: 1 };
         })
       ]).then(([hRes, bRes]) => {
         console.log('Hoardings response:', hRes);
         setHoardings(hRes.hoardings || []);
         setBookings(bRes.bookings || []);
+        setTotalHoardingsPages(hRes.totalPages || 1);
+        setTotalBookingsPages(bRes.totalPages || 1);
         setLoading(false);
       });
     }
-  }, [token, authLoading]);
+  }, [token, authLoading, hoardingsPage, bookingsPage]);
 
   // Show loading state while auth is loading or data is being fetched
   if (authLoading || loading) {
@@ -76,7 +112,7 @@ export default function VendorDashboard() {
       <div className="bg-white rounded shadow p-4 mb-8">
         <div className="flex justify-between items-center mb-2">
           <h2 className="font-semibold text-lg">Owned Hoardings</h2>
-          <button className="bg-blue-600 text-white px-4 py-1 rounded text-sm font-semibold">+ Add New Hoarding</button>
+          <button className="bg-blue-600 text-white px-4 py-1 rounded text-sm font-semibold" onClick={() => navigate('/add-hoarding')}>+ Add New Hoarding</button>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -99,8 +135,8 @@ export default function VendorDashboard() {
                   <td className="px-3 py-2">{h.averageRating?.toFixed(1) || "-"} <span className="text-yellow-500">★</span></td>
                   <td className="px-3 py-2">{h.reviewCount || 0}</td>
                   <td className="px-3 py-2 flex gap-2">
-                    <button className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">View Details</button>
-                    <button className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">✎</button>
+                    <button className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs" onClick={() => navigate(`/hoardings/${h._id}`)}>View Details</button>
+                    <button className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs" onClick={() => navigate(`/edit-hoarding/${h._id}`)}>✎</button>
                     <button className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs">🗑</button>
                   </td>
                 </tr>
@@ -109,6 +145,11 @@ export default function VendorDashboard() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={hoardingsPage}
+          totalPages={totalHoardingsPages}
+          onPageChange={setHoardingsPage}
+        />
       </div>
       {/* Booking Requests */}
       <div className="bg-white rounded shadow p-4 mb-8">
@@ -130,7 +171,7 @@ export default function VendorDashboard() {
             <tbody>
               {bookingRequests.map(b => (
                 <tr key={b._id} className="border-b">
-                  <td className="px-3 py-2">{b.buyerId?.username || b.buyerId?.firstName || "-"}</td>
+                  <td className="px-3 py-2">{b.buyerId?.firstName} {b.buyerId?.lastName}</td>
                   <td className="px-3 py-2">{b.hoardingId?.name || "-"}</td>
                   <td className="px-3 py-2">{new Date(b.startDate).toLocaleDateString()} - {new Date(b.endDate).toLocaleDateString()}</td>
                   <td className="px-3 py-2"><StatusBadge status={b.status} /></td>
@@ -143,6 +184,11 @@ export default function VendorDashboard() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={bookingsPage}
+          totalPages={totalBookingsPages}
+          onPageChange={setBookingsPage}
+        />
       </div>
       {/* Completed Bookings - Proof Pending */}
       <div className="bg-white rounded shadow p-4 mb-8">
@@ -162,6 +208,11 @@ export default function VendorDashboard() {
           ))}
           {completedProofPending.length === 0 && <div className="text-center text-gray-400 py-4">No completed bookings pending proof.</div>}
         </div>
+        <Pagination
+          currentPage={completedPage}
+          totalPages={totalCompletedPages}
+          onPageChange={setCompletedPage}
+        />
       </div>
     </div>
   );
