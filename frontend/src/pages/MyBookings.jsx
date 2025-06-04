@@ -45,8 +45,14 @@ export default function MyBookings() {
               <div className="text-gray-500 text-sm mb-1">{b.hoardingId?.location?.city}</div>
               <div className="text-gray-700 text-sm">{new Date(b.startDate).toLocaleDateString()} - {new Date(b.endDate).toLocaleDateString()}</div>
               <div className="text-gray-700 text-sm">Total: <span className="font-semibold">₹{b.totalPrice}</span></div>
-              <div className="mt-1">
+              <div className="mt-1 flex items-center gap-2">
                 <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${b.status === "accepted" ? "bg-green-100 text-green-700" : b.status === "pending" ? "bg-yellow-100 text-yellow-700" : b.status === "rejected" ? "bg-red-100 text-red-700" : "bg-gray-200 text-gray-600"}`}>{b.status}</span>
+                <Link 
+                  to={`/booking/${b._id}`}
+                  className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs hover:bg-blue-200 transition"
+                >
+                  View Details
+                </Link>
               </div>
             </div>
           </div>

@@ -10,11 +10,12 @@ export default function Navbar() {
     <>
       <Link to="/" className="hover:text-blue-600" onClick={() => setMenuOpen(false)}>Home</Link>
       <Link to="/search" className="hover:text-blue-600" onClick={() => setMenuOpen(false)}>Search</Link>
+      <Link to="/map-test" className="hover:text-blue-600" onClick={() => setMenuOpen(false)}>Map Test</Link>
       {user && user.role === "vendor" && (
         <Link to="/vendor-dashboard" className="hover:text-blue-600" onClick={() => setMenuOpen(false)}>Vendor Dashboard</Link>
       )}
       {user && user.role === "admin" && (
-        <Link to="/admin-dashboard" className="hover:text-blue-600" onClick={() => setMenuOpen(false)}>Admin Dashboard</Link>
+        <Link to="/admin" className="hover:text-blue-600" onClick={() => setMenuOpen(false)}>Admin Dashboard</Link>
       )}
       {user && <Link to="/my-bookings" className="hover:text-blue-600" onClick={() => setMenuOpen(false)}>My Bookings</Link>}
       {user ? (

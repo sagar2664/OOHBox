@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { getHoardings } from "../api/api";
 import HoardingCard from "../components/HoardingCard";
+import HoardingMap from '../components/HoardingMap';
 
 export default function Home() {
   const [featured, setFeatured] = useState([]);
@@ -9,10 +10,26 @@ export default function Home() {
   const [type, setType] = useState("");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [hoardings, setHoardings] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     getHoardings({ limit: 6, status: "pending" }).then(data => setFeatured(data.hoardings || []));
+    // Fetch hoardings for the map
+    getHoardings({ limit: 100 }).then(data => {
+      console.log('Raw hoardings data:', data.hoardings);
+      // Log the first hoarding's location structure
+      if (data.hoardings && data.hoardings.length > 0) {
+        console.log('Sample hoarding location:', data.hoardings[0].location);
+        console.log('Sample coordinates:', data.hoardings[0].location?.coordinates);
+      }
+      setHoardings(data.hoardings || []);
+      setLoading(false);
+    }).catch(err => {
+      console.error('Failed to load hoardings:', err);
+      setLoading(false);
+    });
   }, []);
 
   const handleSearch = (e) => {
@@ -26,7 +43,45 @@ export default function Home() {
   };
 
   return (
-    <div>
+    <div className="max-w-6xl mx-auto py-8 px-4">
+      {/* Hero Section */}
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold mb-4">Welcome to OOHBox</h1>
+        <p className="text-xl text-gray-600 mb-8">Your one-stop solution for outdoor advertising</p>
+        <Link to="/search" className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+          Find Hoardings
+        </Link>
+      </div>
+
+      {/* Map Section */}
+      <div className="bg-white rounded-lg shadow-lg p-6 mb-12">
+        <h2 className="text-2xl font-bold mb-4">Find Hoardings Near You</h2>
+        <p className="text-gray-600 mb-6">Explore our network of premium advertising spaces across India</p>
+        {loading ? (
+          <div className="h-[400px] bg-gray-100 flex items-center justify-center">
+            Loading map...
+          </div>
+        ) : (
+          <HoardingMap hoardings={hoardings} />
+        )}
+      </div>
+
+      {/* Features Section */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+        <div className="text-center p-6 bg-white rounded-lg shadow">
+          <h3 className="text-xl font-semibold mb-2">Wide Coverage</h3>
+          <p className="text-gray-600">Access hoardings across major cities in India</p>
+        </div>
+        <div className="text-center p-6 bg-white rounded-lg shadow">
+          <h3 className="text-xl font-semibold mb-2">Easy Booking</h3>
+          <p className="text-gray-600">Simple and secure booking process</p>
+        </div>
+        <div className="text-center p-6 bg-white rounded-lg shadow">
+          <h3 className="text-xl font-semibold mb-2">Verified Locations</h3>
+          <p className="text-gray-600">All hoardings are verified for quality and visibility</p>
+        </div>
+      </div>
+
       {/* Hero Section */}
       <div
         className="bg-cover bg-center min-h-[300px] md:min-h-[350px] flex flex-col justify-center items-center px-4 py-8 md:py-0"

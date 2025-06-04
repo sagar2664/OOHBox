@@ -81,10 +81,10 @@ router.patch(
 );
 
 // Create hoarding with image upload
-router.post('/', upload.single('image'), parseJsonData, hoardingValidation, hoardingController.createHoarding);
+router.post('/', authorize('vendor'), upload.single('image'), parseJsonData, hoardingValidation, hoardingController.createHoarding);
 
 // Update hoarding with image upload
-router.patch('/:id', upload.single('image'), parseJsonData, hoardingValidation, hoardingController.updateHoarding);
+router.patch('/:id', authorize('vendor'), upload.single('image'), parseJsonData, hoardingValidation, hoardingController.updateHoarding);
 
 // Delete hoarding
 router.delete('/:id', hoardingController.deleteHoarding);

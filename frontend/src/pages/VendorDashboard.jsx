@@ -176,7 +176,12 @@ export default function VendorDashboard() {
                   <td className="px-3 py-2">{new Date(b.startDate).toLocaleDateString()} - {new Date(b.endDate).toLocaleDateString()}</td>
                   <td className="px-3 py-2"><StatusBadge status={b.status} /></td>
                   <td className="px-3 py-2">
-                    <button className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">View Details</button>
+                    <button 
+                      className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs hover:bg-blue-200 transition" 
+                      onClick={() => navigate(`/booking/${b._id}`)}
+                    >
+                      View Details
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -192,21 +197,26 @@ export default function VendorDashboard() {
       </div>
       {/* Completed Bookings - Proof Pending */}
       <div className="bg-white rounded shadow p-4 mb-8">
-        <h2 className="font-semibold text-lg mb-2">Completed Bookings - Proof Pending</h2>
+        <h2 className="font-semibold text-lg mb-2">Completed Bookings</h2>
         <div className="flex flex-col gap-3">
-          {completedProofPending.map(b => (
+          {bookings.filter(b => b.status === 'completed').map(b => (
             <div key={b._id} className="flex flex-col md:flex-row md:items-center justify-between bg-blue-50 rounded p-3">
               <div>
                 <div className="font-semibold">{b.hoardingId?.name || "-"}</div>
                 <div className="text-xs text-gray-500">{new Date(b.startDate).toLocaleDateString()} - {new Date(b.endDate).toLocaleDateString()}</div>
               </div>
               <div className="flex items-center gap-2 mt-2 md:mt-0">
-                <StatusBadge status="Proof Overdue" />
-                <button className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">View Details</button>
+                <StatusBadge status={b.proofImage?.url ? "Completed" : "Proof Pending"} />
+                <button 
+                  className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs"
+                  onClick={() => navigate(`/booking/${b._id}`)}
+                >
+                  View Details
+                </button>
               </div>
             </div>
           ))}
-          {completedProofPending.length === 0 && <div className="text-center text-gray-400 py-4">No completed bookings pending proof.</div>}
+          {bookings.filter(b => b.status === 'completed').length === 0 && <div className="text-center text-gray-400 py-4">No completed bookings.</div>}
         </div>
         <Pagination
           currentPage={completedPage}
