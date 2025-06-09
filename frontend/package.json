@@ -7,9 +7,9 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "CI=false vite build",
     "preview": "vite preview",
-    "vercel-build": "vite build"
+    "vercel-build": "CI=false vite build"
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.6",
