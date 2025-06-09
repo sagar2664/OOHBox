@@ -33,6 +33,7 @@ exports.createBooking = async (req, res) => {
     });
 
     if (overlappingBooking) {
+      //console.log("booking is overlapping");
       return res.status(400).json({ message: 'Hoarding is already booked for these dates' });
     }
 

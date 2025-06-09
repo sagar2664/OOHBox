@@ -61,22 +61,22 @@ export default function VendorDashboard() {
   useEffect(() => {
     // Only make the API call if we have a token and auth is not loading
     if (!authLoading && token) {
-      console.log('Making API calls with token:', token);
+      //console.log('Making API calls with token:', token);
       setLoading(true);
       setError(null);
       
       Promise.all([
         getVendorHoardings(token, { page: hoardingsPage }).catch(err => {
-          console.error('Error fetching hoardings:', err);
+          //console.error('Error fetching hoardings:', err);
           setError(err.message);
           return { hoardings: [], totalPages: 1 };
         }),
         getVendorBookings(token, { page: bookingsPage }).catch(err => {
-          console.error('Error fetching bookings:', err);
+          //console.error('Error fetching bookings:', err);
           return { bookings: [], totalPages: 1 };
         })
       ]).then(([hRes, bRes]) => {
-        console.log('Hoardings response:', hRes);
+        //console.log('Hoardings response:', hRes);
         setHoardings(hRes.hoardings || []);
         setBookings(bRes.bookings || []);
         setTotalHoardingsPages(hRes.totalPages || 1);
@@ -102,7 +102,7 @@ export default function VendorDashboard() {
   }
 
   // Split bookings
-  const bookingRequests = bookings.filter(b => b.status === "pending");
+  const bookingRequests = bookings.filter(b => b.status != "completed");
   const completedProofPending = bookings.filter(b => b.status === "completed" && !b.proofImage?.url);
 
   return (

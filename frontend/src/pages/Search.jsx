@@ -36,6 +36,7 @@ export default function Search() {
     getHoardings(params).then(data => {
       setHoardings(data.hoardings || []);
       setTotal(data.totalHoardings || 0);
+      console.log(data.hoardings);
       setLoading(false);
     });
   }, [searchParams, page]);

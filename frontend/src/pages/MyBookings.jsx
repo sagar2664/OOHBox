@@ -16,6 +16,7 @@ export default function MyBookings() {
         setBookings(res.bookings);
         setError("");
       } else {
+        //console.log(res);
         setError(res.message || "Could not fetch bookings");
       }
       setLoading(false);
