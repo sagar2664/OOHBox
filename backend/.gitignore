@@ -1,3 +1,6 @@
+oohbox-1.pem
+backend.zip
+deploy.sh
 # Dependencies
 node_modules/
 npm-debug.log
