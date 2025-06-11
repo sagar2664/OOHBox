@@ -1,27 +1,51 @@
 import React, { useEffect, useState } from "react";
 import { getMyBookings } from "../api/api";
 import { useAuth } from "../hooks/useAuth";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function MyBookings() {
-  const { token } = useAuth();
+  const { token, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // Don't make the request until auth is loaded
+    if (authLoading) return;
+
+    // If no token after auth is loaded, redirect to login
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
     setLoading(true);
-    getMyBookings(token).then(res => {
-      if (res.bookings) {
-        setBookings(res.bookings);
-        setError("");
-      } else {
-        //console.log(res);
-        setError(res.message || "Could not fetch bookings");
-      }
-      setLoading(false);
-    });
-  }, [token]);
+    getMyBookings(token)
+      .then(res => {
+        if (res.bookings) {
+          setBookings(res.bookings);
+          setError("");
+        } else {
+          setError(res.message || "Could not fetch bookings");
+        }
+      })
+      .catch(err => {
+        if (err.message === "Authentication failed. Please log in again.") {
+          navigate('/login');
+        } else {
+          setError(err.message || "Could not fetch bookings");
+        }
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [token, authLoading, navigate]);
+
+  // Show loading state while auth is being loaded
+  if (authLoading) {
+    return <div className="max-w-4xl mx-auto px-2 md:px-0 py-8">Loading...</div>;
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-2 md:px-0 py-8">

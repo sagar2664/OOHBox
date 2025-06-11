@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
+import { Link } from 'react-router-dom';
 
 const containerStyle = {
   width: '100%',
@@ -135,11 +136,17 @@ const HoardingMap = ({ hoardings = [] }) => {
             position={parseCoordinates(selectedHoarding.location.coordinates)}
             onCloseClick={() => setSelectedHoarding(null)}
           >
-            <div className="p-2">
-              <h3 className="font-semibold">{selectedHoarding.name}</h3>
-              <p className="text-sm text-gray-600">{selectedHoarding.location.address}</p>
-              <p className="text-sm text-gray-600">Size: {selectedHoarding.size}</p>
-              <p className="text-sm text-gray-600">Price: ₹{selectedHoarding.price}/day</p>
+            <div className="p-2 min-w-[200px]">
+              <h3 className="font-semibold text-lg mb-1">{selectedHoarding.name}</h3>
+              <p className="text-sm text-gray-600 mb-1">{selectedHoarding.location.address}</p>
+              <p className="text-sm font-medium text-blue-600 mb-2">₹{selectedHoarding.price}/day</p>
+              <Link
+                to={`/hoardings/${selectedHoarding._id}`}
+                className="block w-full bg-blue-600 text-white text-center py-1.5 px-3 rounded text-sm font-medium hover:bg-blue-700 transition"
+                onClick={() => setSelectedHoarding(null)}
+              >
+                View Details
+              </Link>
             </div>
           </InfoWindow>
         )}

@@ -33,6 +33,9 @@ const auth = async (req, res, next) => {
 const authorize = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
+      // console.log("Not authorized to perform this action");
+      // console.log(req.user.role);
+      // console.log(roles);
       return res.status(403).json({ 
         message: 'You do not have permission to perform this action' 
       });

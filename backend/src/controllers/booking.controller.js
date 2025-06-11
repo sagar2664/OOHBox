@@ -107,15 +107,28 @@ exports.updateBookingStatus = async (req, res) => {
       return res.status(404).json({ message: 'Booking not found' });
     }
 
-    // Check authorization
+    // Check authorization and validate status changes
     const hoarding = await Hoarding.findById(booking.hoardingId);
-    if (req.user.role === 'vendor' && hoarding.vendorId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized to update this booking' });
+    
+    // Handle buyer cancellation
+    if (req.user.role === 'buyer') {
+      if (booking.buyerId.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Not authorized to update this booking' });
+      }
+      // Buyers can only cancel pending bookings
+      if (status !== 'cancelled' || booking.status !== 'pending') {
+        return res.status(403).json({ message: 'Buyers can only cancel pending bookings' });
+      }
     }
-
-    // Validate status transition
-    if (status === 'completed' && !req.file) {
-      return res.status(400).json({ message: 'Proof image is required to complete booking' });
+    // Handle vendor status updates
+    else if (req.user.role === 'vendor') {
+      if (hoarding.vendorId.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Not authorized to update this booking' });
+      }
+      // Validate status transition for vendor
+      if (status === 'completed' && !req.file) {
+        return res.status(400).json({ message: 'Proof image is required to complete booking' });
+      }
     }
 
     booking.status = status;
@@ -187,9 +200,15 @@ exports.getBookingById = async (req, res) => {
     // Check authorization
     const hoarding = await Hoarding.findById(booking.hoardingId);
     if (
-      req.user.role === 'buyer' && booking.buyerId.toString() !== req.user._id.toString() ||
-      req.user.role === 'vendor' && hoarding.vendorId.toString() !== req.user._id.toString()
+      (req.user.role === 'buyer' && booking.buyerId._id.toString() !== req.user._id.toString()) ||
+      (req.user.role === 'vendor' && hoarding.vendorId.toString() !== req.user._id.toString())
     ) {
+      // console.log("Not authorized to view this booking");
+      // console.log(req.user.role);
+      // console.log("buyerId: ", booking.buyerId._id.toString());
+      // console.log("userId: ", req.user._id.toString());
+      // console.log("vendorId: ", hoarding.vendorId.toString());
+      // console.log("userId: ", req.user._id.toString());
       return res.status(403).json({ message: 'Not authorized to view this booking' });
     }
 

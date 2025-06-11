@@ -56,7 +56,7 @@ router.get('/:id', bookingController.getBookingById);
 // Vendor routes
 router.patch(
   '/:id/status',
-  authorize('vendor'),
+  authorize('vendor', 'buyer'),
   upload.single('proofImage'),
   body('status').isIn(['accepted', 'rejected', 'completed', 'cancelled']),
   bookingController.updateBookingStatus

@@ -151,7 +151,7 @@ export default function Home() {
         <h2 className="text-lg sm:text-xl font-bold mb-4">Featured Hoardings</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {featured.map(h => (
-            <HoardingCard key={h.id} hoarding={h} />
+            <HoardingCard key={h._id} hoarding={h} />
           ))}
         </div>
       </div>

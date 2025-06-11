@@ -3,7 +3,10 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const handleResponse = async (response) => {
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.message || 'Something went wrong');
+    // Create an error with the response data
+    const error = new Error(data.message || 'Something went wrong');
+    error.response = { data };
+    throw error;
   }
   return data;
 };
@@ -56,16 +59,16 @@ export const getHoardingBookings = (hoardingId) =>
   fetch(`${API_URL}/bookings/hoarding/${hoardingId}`).then(handleResponse);
 
 export const getVendorHoardings = (token, params = {}) => {
-  console.log('Making vendor hoardings request with token:', token); // Debug token
+  //console.log('Making vendor hoardings request with token:', token); // Debug token
   const query = new URLSearchParams(params).toString();
   return fetch(`${API_URL}/hoardings/myhoardings?${query}`, {
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   }).then(async (res) => {
-    console.log('Vendor hoardings response status:', res.status); // Debug response status
+    //console.log('Vendor hoardings response status:', res.status); // Debug response status
     const data = await res.json();
-    console.log('Vendor hoardings response data:', data); // Debug response data
+    //console.log('Vendor hoardings response data:', data); // Debug response data
     if (!res.ok) {
       throw new Error(data.message || 'Failed to fetch vendor hoardings');
     }
@@ -74,16 +77,16 @@ export const getVendorHoardings = (token, params = {}) => {
 };
 
 export const getVendorBookings = (token, params = {}) => {
-  console.log('Making vendor bookings request with token:', token); // Debug token
+  //console.log('Making vendor bookings request with token:', token); // Debug token
   const query = new URLSearchParams(params).toString();
   return fetch(`${API_URL}/bookings/me?${query}`, {
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   }).then(async (res) => {
-    console.log('Vendor bookings response status:', res.status); // Debug response status
+    //console.log('Vendor bookings response status:', res.status); // Debug response status
     const data = await res.json();
-    console.log('Vendor bookings response data:', data); // Debug response data
+    //console.log('Vendor bookings response data:', data); // Debug response data
     if (!res.ok) {
       throw new Error(data.message || 'Failed to fetch vendor bookings');
     }
@@ -178,18 +181,18 @@ export const updateBookingStatus = (id, status, token, proofFile = null) => {
 };
 
 export const uploadBookingProof = (id, file, token) => {
-  console.log('API: Starting proof upload...');
-  console.log('API: File details:', {
-    name: file.name,
-    type: file.type,
-    size: file.size
-  });
+  //console.log('API: Starting proof upload...');
+  // console.log('API: File details:', {
+  //   name: file.name,
+  //   type: file.type,
+  //   size: file.size
+  // });
 
   const formData = new FormData();
   formData.append('proofImage', file);
   
-  console.log('API: FormData created with file');
-  console.log('API: FormData entries:', Array.from(formData.entries()));
+  //console.log('API: FormData created with file');
+  //console.log('API: FormData entries:', Array.from(formData.entries()));
 
   return fetch(`${API_URL}/bookings/${id}/proof`, {
     method: 'PATCH',
@@ -199,9 +202,9 @@ export const uploadBookingProof = (id, file, token) => {
     },
     body: formData,
   }).then(async (res) => {
-    console.log('API: Upload response status:', res.status);
+    //console.log('API: Upload response status:', res.status);
     const data = await res.json();
-    console.log('API: Upload response data:', data);
+    //console.log('API: Upload response data:', data);
     
     if (!res.ok) {
       throw new Error(data.message || 'Failed to upload proof');
@@ -298,4 +301,22 @@ export const updateHoardingStatus = (id, status, token) =>
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({ status }),
+  }).then(handleResponse);
+
+// Profile management
+export const getProfile = (token) =>
+  fetch(`${API_URL}/users/profile`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  }).then(handleResponse);
+
+export const updateProfile = (data, token) =>
+  fetch(`${API_URL}/users/profile`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(data),
   }).then(handleResponse);

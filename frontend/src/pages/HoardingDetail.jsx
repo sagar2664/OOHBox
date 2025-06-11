@@ -34,19 +34,28 @@ export default function HoardingDetail() {
     setBookingError("");
     setBookingSuccess("");
     setBookingLoading(true);
-    const res = await createBooking({
-      hoardingId: id,
-      startDate: bookingForm.startDate,
-      endDate: bookingForm.endDate,
-      notes: bookingForm.notes,
-    }, token);
-    setBookingLoading(false);
-    if (res.booking) {
-      setShowBooking(false);
-      setBookingForm({ startDate: "", endDate: "", notes: "" });
-      navigate("/my-bookings");
-    } else {
-      setBookingError(res.message || (res.errors && res.errors[0]?.msg) || "Booking failed");
+    try {
+      const res = await createBooking({
+        hoardingId: id,
+        startDate: bookingForm.startDate,
+        endDate: bookingForm.endDate,
+        notes: bookingForm.notes,
+      }, token);
+      
+      if (res.booking) {
+        setShowBooking(false);
+        setBookingForm({ startDate: "", endDate: "", notes: "" });
+        navigate("/my-bookings");
+      }
+    } catch (error) {
+      if (error.response?.data?.errors && error.response.data.errors.length > 0) {
+        const validationError = error.response.data.errors[0];
+        setBookingError(validationError.msg);
+      } else {
+        setBookingError(error.message || "An error occurred while booking. Please try again.");
+      }
+    } finally {
+      setBookingLoading(false);
     }
   };
 
