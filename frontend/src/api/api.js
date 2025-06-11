@@ -248,25 +248,23 @@ export const getAdminAnalytics = (token) =>
 
 // ADMIN: Get all users (with pagination/search)
 export const getUsers = ({ page = 1, search = '' } = {}, token) => {
-  const params = new URLSearchParams();
-  if (page) params.append('page', page);
-  if (search) params.append('search', search);
-  return fetch(`${API_URL}/users?${params.toString()}`, {
+  const query = new URLSearchParams({ page, search }).toString();
+  return fetch(`${API_URL}/users?${query}`, {
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   }).then(handleResponse);
 };
 
-// ADMIN: Update user (inactive toggle, etc.)
+// ADMIN: Update user
 export const updateUser = (id, data, token) =>
   fetch(`${API_URL}/users/${id}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      Authorization: `Bearer ${token}`
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify(data)
   }).then(handleResponse);
 
 // ADMIN: Delete user
@@ -274,8 +272,8 @@ export const deleteUser = (id, token) =>
   fetch(`${API_URL}/users/${id}`, {
     method: 'DELETE',
     headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+      Authorization: `Bearer ${token}`
+    }
   }).then(handleResponse);
 
 // ADMIN: Get pending hoardings (with pagination/search)

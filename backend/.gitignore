@@ -1,5 +1,7 @@
 oohbox-1.pem
-backend.zip
+
+backend.zip/
+
 deploy.sh
 # Dependencies
 node_modules/
