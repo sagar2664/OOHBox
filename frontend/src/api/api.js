@@ -59,16 +59,13 @@ export const getHoardingBookings = (hoardingId) =>
   fetch(`${API_URL}/bookings/hoarding/${hoardingId}`).then(handleResponse);
 
 export const getVendorHoardings = (token, params = {}) => {
-  //console.log('Making vendor hoardings request with token:', token); // Debug token
   const query = new URLSearchParams(params).toString();
-  return fetch(`${API_URL}/hoardings/myhoardings?${query}`, {
+  return fetch(`${API_URL}/hoardings/me?${query}`, {
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   }).then(async (res) => {
-    //console.log('Vendor hoardings response status:', res.status); // Debug response status
     const data = await res.json();
-    //console.log('Vendor hoardings response data:', data); // Debug response data
     if (!res.ok) {
       throw new Error(data.message || 'Failed to fetch vendor hoardings');
     }
@@ -77,21 +74,12 @@ export const getVendorHoardings = (token, params = {}) => {
 };
 
 export const getVendorBookings = (token, params = {}) => {
-  //console.log('Making vendor bookings request with token:', token); // Debug token
   const query = new URLSearchParams(params).toString();
   return fetch(`${API_URL}/bookings/me?${query}`, {
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-  }).then(async (res) => {
-    //console.log('Vendor bookings response status:', res.status); // Debug response status
-    const data = await res.json();
-    //console.log('Vendor bookings response data:', data); // Debug response data
-    if (!res.ok) {
-      throw new Error(data.message || 'Failed to fetch vendor bookings');
-    }
-    return data;
-  });
+  }).then(handleResponse);
 };
 
 export const getVendorAnalytics = (token) =>
@@ -101,17 +89,18 @@ export const getVendorAnalytics = (token) =>
     },
   }).then(handleResponse);
 
-export const createHoarding = (data, imageFile, token) => {
+export const createHoarding = (data, mediaFiles, token) => {
   const formData = new FormData();
   formData.append('data', JSON.stringify(data));
-  if (imageFile) {
-    formData.append('image', imageFile);
+  if (mediaFiles && mediaFiles.length > 0) {
+    mediaFiles.forEach((file, index) => {
+      formData.append(`media`, file);
+    });
   }
   return fetch(`${API_URL}/hoardings`, {
     method: 'POST',
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {})
-      // Do not set Content-Type, browser will set it for FormData
     },
     body: formData,
   }).then(async (res) => {
@@ -123,17 +112,18 @@ export const createHoarding = (data, imageFile, token) => {
   });
 };
 
-export const updateHoarding = (id, data, imageFile, token) => {
+export const updateHoarding = (id, data, mediaFiles, token) => {
   const formData = new FormData();
   formData.append('data', JSON.stringify(data));
-  if (imageFile) {
-    formData.append('image', imageFile);
+  if (mediaFiles && mediaFiles.length > 0) {
+    mediaFiles.forEach((file, index) => {
+      formData.append(`media`, file);
+    });
   }
   return fetch(`${API_URL}/hoardings/${id}`, {
     method: 'PATCH',
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {})
-      // Do not set Content-Type, browser will set it for FormData
     },
     body: formData,
   }).then(async (res) => {
@@ -145,6 +135,14 @@ export const updateHoarding = (id, data, imageFile, token) => {
   });
 };
 
+export const deleteHoarding = (id, token) =>
+  fetch(`${API_URL}/hoardings/${id}`, {
+    method: 'DELETE',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  }).then(handleResponse);
+
 export const getBookingById = (id, token) =>
   fetch(`${API_URL}/bookings/${id}`, {
     headers: {
@@ -154,7 +152,6 @@ export const getBookingById = (id, token) =>
 
 export const updateBookingStatus = (id, status, token, proofFile = null) => {
   if (status === 'completed' && proofFile) {
-    // If completing booking with proof, use FormData
     const formData = new FormData();
     formData.append('status', status);
     formData.append('proofImage', proofFile);
@@ -163,12 +160,10 @@ export const updateBookingStatus = (id, status, token, proofFile = null) => {
       method: 'PATCH',
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        // Do not set Content-Type, browser will set it for FormData
       },
       body: formData,
     }).then(handleResponse);
   } else {
-    // For other status updates, use JSON
     return fetch(`${API_URL}/bookings/${id}/status`, {
       method: 'PATCH',
       headers: {
@@ -181,31 +176,17 @@ export const updateBookingStatus = (id, status, token, proofFile = null) => {
 };
 
 export const uploadBookingProof = (id, file, token) => {
-  //console.log('API: Starting proof upload...');
-  // console.log('API: File details:', {
-  //   name: file.name,
-  //   type: file.type,
-  //   size: file.size
-  // });
-
   const formData = new FormData();
   formData.append('proofImage', file);
   
-  //console.log('API: FormData created with file');
-  //console.log('API: FormData entries:', Array.from(formData.entries()));
-
   return fetch(`${API_URL}/bookings/${id}/proof`, {
     method: 'PATCH',
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      // Do not set Content-Type, browser will set it for FormData
     },
     body: formData,
   }).then(async (res) => {
-    //console.log('API: Upload response status:', res.status);
     const data = await res.json();
-    //console.log('API: Upload response data:', data);
-    
     if (!res.ok) {
       throw new Error(data.message || 'Failed to upload proof');
     }
@@ -233,7 +214,6 @@ export const updateReview = (id, data, token) =>
     body: JSON.stringify(data),
   }).then(handleResponse);
 
-// Helper: get review for a booking (fetch all reviews for hoarding, filter by bookingId)
 export const getReviewByBookingId = async (hoardingId, bookingId) => {
   const res = await fetch(`${API_URL}/reviews/hoarding/${hoardingId}`);
   const data = await res.json();
@@ -241,7 +221,6 @@ export const getReviewByBookingId = async (hoardingId, bookingId) => {
   return (data.reviews || []).find(r => r.bookingId === bookingId);
 };
 
-// ADMIN: Get platform-wide analytics
 export const getAdminAnalytics = (token) =>
   fetch(`${API_URL}/analytics/admin`, {
     headers: {
@@ -249,7 +228,6 @@ export const getAdminAnalytics = (token) =>
     },
   }).then(handleResponse);
 
-// ADMIN: Get all users (with pagination/search)
 export const getUsers = ({ page = 1, search = '' } = {}, token) => {
   const query = new URLSearchParams({ page, search }).toString();
   return fetch(`${API_URL}/users?${query}`, {
@@ -259,7 +237,6 @@ export const getUsers = ({ page = 1, search = '' } = {}, token) => {
   }).then(handleResponse);
 };
 
-// ADMIN: Update user
 export const updateUser = (id, data, token) =>
   fetch(`${API_URL}/users/${id}`, {
     method: 'PATCH',
@@ -270,7 +247,6 @@ export const updateUser = (id, data, token) =>
     body: JSON.stringify(data)
   }).then(handleResponse);
 
-// ADMIN: Delete user
 export const deleteUser = (id, token) =>
   fetch(`${API_URL}/users/${id}`, {
     method: 'DELETE',
@@ -279,7 +255,6 @@ export const deleteUser = (id, token) =>
     }
   }).then(handleResponse);
 
-// ADMIN: Get pending hoardings (with pagination/search)
 export const getPendingHoardings = ({ page = 1, search = '' } = {}, token) => {
   const params = new URLSearchParams();
   params.append('status', 'pending');
@@ -292,7 +267,6 @@ export const getPendingHoardings = ({ page = 1, search = '' } = {}, token) => {
   }).then(handleResponse);
 };
 
-// ADMIN: Approve/Reject hoarding
 export const updateHoardingStatus = (id, status, token) =>
   fetch(`${API_URL}/hoardings/${id}/status`, {
     method: 'PATCH',
@@ -303,7 +277,6 @@ export const updateHoardingStatus = (id, status, token) =>
     body: JSON.stringify({ status }),
   }).then(handleResponse);
 
-// Profile management
 export const getProfile = (token) =>
   fetch(`${API_URL}/users/profile`, {
     headers: {

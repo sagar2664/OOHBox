@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import logo from "../assets/images/oohbox-logo.jpg"
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -90,7 +91,9 @@ export default function Navbar() {
 
   return (
     <nav className="bg-white shadow flex items-center justify-between px-4 md:px-8 py-3 relative">
-      <Link to="/" className="text-blue-600 font-bold text-xl">OOHBox</Link>
+      <Link to="/" className="flex items-center">
+        <img src={logo} alt="OOHBox Logo" className="h-10 w-auto" />
+      </Link>
       
       {/* Hamburger for mobile */}
       <button
