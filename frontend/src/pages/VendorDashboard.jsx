@@ -131,7 +131,7 @@ export default function VendorDashboard() {
                 <tr key={h._id} className="border-b">
                   <td className="px-3 py-2">{h.name}</td>
                   <td className="px-3 py-2"><StatusBadge status={h.status} /></td>
-                  <td className="px-3 py-2">₹{h.price?.toLocaleString()}/mo</td>
+                  <td className="px-3 py-2">₹{h.pricing?.basePrice.toLocaleString('en-IN')}/{h.pricing?.per || 'month'}</td>
                   <td className="px-3 py-2">{h.averageRating?.toFixed(1) || "-"} <span className="text-yellow-500">★</span></td>
                   <td className="px-3 py-2">{h.reviewCount || 0}</td>
                   <td className="px-3 py-2 flex gap-2">

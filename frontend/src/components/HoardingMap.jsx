@@ -139,7 +139,9 @@ const HoardingMap = ({ hoardings = [] }) => {
             <div className="p-2 min-w-[200px]">
               <h3 className="font-semibold text-lg mb-1">{selectedHoarding.name}</h3>
               <p className="text-sm text-gray-600 mb-1">{selectedHoarding.location.address}</p>
-              <p className="text-sm font-medium text-blue-600 mb-2">₹{selectedHoarding.price}/day</p>
+              <p className="text-sm font-medium text-blue-600 mb-2">
+                ₹{selectedHoarding.pricing?.basePrice.toLocaleString('en-IN')}/{selectedHoarding.pricing?.per || 'month'}
+              </p>
               <Link
                 to={`/hoardings/${selectedHoarding._id}`}
                 className="block w-full bg-blue-600 text-white text-center py-1.5 px-3 rounded text-sm font-medium hover:bg-blue-700 transition"
