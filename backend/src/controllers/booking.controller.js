@@ -33,27 +33,50 @@ exports.createBooking = async (req, res) => {
     });
 
     if (overlappingBooking) {
-      //console.log("booking is overlapping");
       return res.status(400).json({ message: 'Hoarding is already booked for these dates' });
     }
 
     // Calculate total price
-    const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
-    const totalPrice = hoarding.price * days;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    
+    if (!hoarding.pricing || !hoarding.pricing.basePrice) {
+      return res.status(400).json({ message: 'Hoarding pricing information is missing' });
+    }
+
+    const totalPrice = hoarding.pricing.basePrice * days;
 
     const booking = new Booking({
       hoardingId,
       buyerId: req.user._id,
-      startDate,
-      endDate,
+      startDate: start,
+      endDate: end,
       notes,
       totalPrice
     });
 
     await booking.save();
+
+    // Update hoarding's bookings array
+    await Hoarding.findByIdAndUpdate(hoardingId, {
+      $push: {
+        bookings: {
+          bookingId: booking._id,
+          startDate: start,
+          endDate: end
+        }
+      }
+    });
+
     res.status(201).json({ message: 'Booking created successfully', booking });
   } catch (error) {
-    res.status(500).json({ message: 'Error creating booking', error: error.message });
+    console.error('Booking creation error:', error);
+    res.status(500).json({ 
+      message: 'Error creating booking', 
+      error: error.message,
+      details: error.stack
+    });
   }
 };
 
@@ -229,4 +252,70 @@ exports.getBookingsForHoarding = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Error fetching bookings', error: error.message });
   }
-}; 
+};
+
+// Update installation details
+exports.updateInstallation = async (req, res) => {
+  try {
+    const { scheduledDate, status, notes } = req.body;
+    const booking = await Booking.findById(req.params.id);
+    
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Check authorization
+    const hoarding = await Hoarding.findById(booking.hoardingId);
+    if (hoarding.vendorId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to update installation details' });
+    }
+
+    // Update installation details
+    booking.installation = {
+      ...booking.installation,
+      scheduledDate: scheduledDate ? new Date(scheduledDate) : booking.installation.scheduledDate,
+      status: status || booking.installation.status,
+      notes: notes || booking.installation.notes
+    };
+
+    // If installation is completed, update the completedDate
+    if (status === 'Completed' && !booking.installation.completedDate) {
+      booking.installation.completedDate = new Date();
+    }
+
+    await booking.save();
+    res.json({ message: 'Installation details updated successfully', booking });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating installation details', error: error.message });
+  }
+};
+
+// Update verification status
+exports.updateVerification = async (req, res) => {
+  try {
+    const { status, notes } = req.body;
+    const booking = await Booking.findById(req.params.id);
+    
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Update verification details
+    booking.verification = {
+      status,
+      verifiedBy: req.user._id,
+      verifiedAt: new Date()
+    };
+
+    if (notes) {
+      booking.verification.notes = notes;
+    }
+
+    await booking.save();
+    res.json({ message: 'Verification status updated successfully', booking });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating verification status', error: error.message });
+  }
+};
+
+module.exports = exports; 

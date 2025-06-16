@@ -11,6 +11,11 @@ const bookingSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  vendorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   startDate: {
     type: Date,
     required: true
@@ -21,37 +26,65 @@ const bookingSchema = new mongoose.Schema({
   },
   notes: {
     type: String,
-    trim: true
+    trim: true,
+    maxLength: 500
   },
   status: {
     type: String,
     enum: ['pending', 'accepted', 'rejected', 'completed', 'cancelled'],
     default: 'pending'
   },
-  totalPrice: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  proofImage: {
-    url: {
-      type: String
+  pricing: {
+    basePrice: {
+      type: Number,
+      required: true,
+      min: 0
     },
-    key: {
-      type: String
+    per: {
+      type: String,
+      enum: ['day', 'week', 'month', 'slot'],
+      required: true
+    },
+    additionalCosts: [{
+      name: { type: String, required: true },
+      cost: { type: Number, required: true },
+      isIncluded: { type: Boolean, default: false }
+    }],
+    totalPrice: {
+      type: Number,
+      required: true,
+      min: 0
     }
   },
-  proofUploadedAt: {
-    type: Date
+  verification: {
+    status: {
+      type: String,
+      enum: ['Pending', 'Verified', 'Rejected'],
+      default: 'Pending'
+    },
+    verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    verifiedAt: { type: Date }
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
+  proof: {
+    images: [{
+      url: { type: String, required: true },
+      key: { type: String, required: true },
+      uploadedAt: { type: Date, default: Date.now }
+    }],
+    notes: { type: String, trim: true }
   },
-  updatedAt: {
-    type: Date,
-    default: Date.now
+  installation: {
+    scheduledDate: { type: Date },
+    completedDate: { type: Date },
+    status: {
+      type: String,
+      enum: ['Pending', 'Scheduled', 'Completed', 'Cancelled'],
+      default: 'Pending'
+    },
+    notes: { type: String, trim: true }
   }
+}, {
+  timestamps: true
 });
 
 // Validate that endDate is after startDate
@@ -67,10 +100,13 @@ bookingSchema.pre('findOneAndUpdate', function() {
   this.set({ updatedAt: new Date() });
 });
 
-// Index for efficient querying
+// Indexes for efficient querying
 bookingSchema.index({ hoardingId: 1, startDate: 1, endDate: 1 });
 bookingSchema.index({ buyerId: 1 });
+bookingSchema.index({ vendorId: 1 });
 bookingSchema.index({ status: 1 });
+bookingSchema.index({ 'verification.status': 1 });
+bookingSchema.index({ 'installation.status': 1 });
 
 const Booking = mongoose.model('Booking', bookingSchema);
 

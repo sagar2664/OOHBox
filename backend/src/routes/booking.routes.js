@@ -6,69 +6,167 @@ const bookingController = require('../controllers/booking.controller');
 
 const router = express.Router();
 
-// Validation middleware
-const bookingValidation = [
-  body('hoardingId')
-    .isMongoId()
-    .withMessage('Invalid hoarding ID'),
-  body('startDate')
-    .isISO8601()
-    .withMessage('Invalid start date')
-    .custom((value) => {
-      if (new Date(value) < new Date()) {
-        throw new Error('Start date must be in the future');
-      }
-      return true;
-    }),
-  body('endDate')
-    .isISO8601()
-    .withMessage('Invalid end date')
-    .custom((value, { req }) => {
-      if (new Date(value) <= new Date(req.body.startDate)) {
-        throw new Error('End date must be after start date');
-      }
-      return true;
-    }),
-  body('notes')
-    .optional()
-    .trim()
-    .isLength({ max: 500 })
-    .withMessage('Notes must not exceed 500 characters')
+// Middleware to reject unknown fields
+const rejectUnknownFields = (req, res, next) => {
+    const allowedFields = [
+        'hoardingId', 'startDate', 'endDate', 'notes', 'pricing',
+        'installation', 'verification'
+    ];
+    
+    const unknownFields = Object.keys(req.body).filter(field => !allowedFields.includes(field));
+    
+    if (unknownFields.length > 0) {
+        return res.status(400).json({
+            message: 'Invalid fields in request',
+            unknownFields: unknownFields
+        });
+    }
+    
+    next();
+};
+
+// Validation middleware for creating booking
+const createBookingValidation = [
+    body('hoardingId')
+        .isMongoId()
+        .withMessage('Invalid hoarding ID'),
+    body('startDate')
+        .isISO8601()
+        .withMessage('Invalid start date format. Please use YYYY-MM-DD format')
+        .custom((value) => {
+            const startDate = new Date(value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (startDate < today) {
+                throw new Error('Start date must be today or in the future');
+            }
+            return true;
+        }),
+    body('endDate')
+        .isISO8601()
+        .withMessage('Invalid end date format. Please use YYYY-MM-DD format')
+        .custom((value, { req }) => {
+            const startDate = new Date(req.body.startDate);
+            const endDate = new Date(value);
+            
+            if (endDate <= startDate) {
+                throw new Error('End date must be after start date');
+            }
+            
+            const maxDuration = 365; // days
+            const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+            if (duration > maxDuration) {
+                throw new Error(`Booking duration cannot exceed ${maxDuration} days`);
+            }
+            
+            return true;
+        }),
+    body('notes')
+        .optional()
+        .trim()
+        .isLength({ max: 500 })
+        .withMessage('Notes must not exceed 500 characters'),
+    body('pricing.basePrice')
+        .isNumeric()
+        .withMessage('Base price must be a number')
+        .isFloat({ min: 0 })
+        .withMessage('Base price must be greater than or equal to 0'),
+    body('pricing.per')
+        .isIn(['day', 'week', 'month', 'slot'])
+        .withMessage('Invalid pricing period'),
+    body('pricing.additionalCosts')
+        .optional()
+        .isArray()
+        .withMessage('Additional costs must be an array'),
+    body('pricing.additionalCosts.*.name')
+        .optional()
+        .trim()
+        .notEmpty()
+        .withMessage('Additional cost name is required'),
+    body('pricing.additionalCosts.*.cost')
+        .optional()
+        .isNumeric()
+        .withMessage('Additional cost must be a number')
+        .isFloat({ min: 0 })
+        .withMessage('Additional cost must be greater than or equal to 0')
 ];
 
-// Public route to get bookings for a specific hoarding (for availability calendar)
+// Validation middleware for updating booking
+const updateBookingValidation = [
+    body('status')
+        .optional()
+        .isIn(['pending', 'accepted', 'rejected', 'completed', 'cancelled'])
+        .withMessage('Invalid status'),
+    body('notes')
+        .optional()
+        .trim()
+        .isLength({ max: 500 })
+        .withMessage('Notes must not exceed 500 characters'),
+    body('installation.scheduledDate')
+        .optional()
+        .isISO8601()
+        .withMessage('Invalid scheduled date format'),
+    body('installation.status')
+        .optional()
+        .isIn(['Pending', 'Scheduled', 'Completed', 'Cancelled'])
+        .withMessage('Invalid installation status'),
+    body('installation.notes')
+        .optional()
+        .trim()
+        .isLength({ max: 500 })
+        .withMessage('Installation notes must not exceed 500 characters')
+];
+
+// Public routes
 router.get('/hoarding/:hoardingId', bookingController.getBookingsForHoarding);
+
 // Protected routes
 router.use(auth);
 
 // Buyer routes
 router.post(
-  '/',
-  authorize('buyer'),
-  bookingValidation,
-  bookingController.createBooking
+    '/',
+    authorize('buyer'),
+    createBookingValidation,
+    rejectUnknownFields,
+    bookingController.createBooking
 );
 
 router.get('/me', bookingController.getMyBookings);
 router.get('/:id', bookingController.getBookingById);
 
-
 // Vendor routes
 router.patch(
-  '/:id/status',
-  authorize('vendor', 'buyer'),
-  upload.single('proofImage'),
-  body('status').isIn(['accepted', 'rejected', 'completed', 'cancelled']),
-  bookingController.updateBookingStatus
+    '/:id/status',
+    authorize('vendor'),
+    updateBookingValidation,
+    rejectUnknownFields,
+    bookingController.updateBookingStatus
 );
 
 router.patch(
-  '/:id/proof',
-  authorize('vendor'),
-  upload.single('proofImage'),
-  bookingController.uploadProof
+    '/:id/installation',
+    authorize('vendor'),
+    updateBookingValidation,
+    rejectUnknownFields,
+    bookingController.updateInstallation
 );
 
+router.patch(
+    '/:id/proof',
+    authorize('vendor'),
+    upload.array('proofImages', 5),
+    bookingController.uploadProof
+);
 
+// Admin routes
+router.patch(
+    '/:id/verification',
+    authorize('admin'),
+    body('status').isIn(['Pending', 'Verified', 'Rejected']),
+    body('notes').optional().trim().isLength({ max: 500 }),
+    bookingController.updateVerification
+);
 
 module.exports = router; 
