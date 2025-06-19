@@ -39,21 +39,44 @@ exports.createBooking = async (req, res) => {
     // Calculate total price
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
     
     if (!hoarding.pricing || !hoarding.pricing.basePrice) {
       return res.status(400).json({ message: 'Hoarding pricing information is missing' });
     }
 
-    const totalPrice = hoarding.pricing.basePrice * days;
+    // Calculate total price based on pricing period
+    let totalPrice = hoarding.pricing.basePrice;
+    if (hoarding.pricing.per === 'day') {
+      totalPrice = hoarding.pricing.basePrice * days;
+    } else if (hoarding.pricing.per === 'week') {
+      totalPrice = hoarding.pricing.basePrice * Math.ceil(days / 7);
+    } else if (hoarding.pricing.per === 'month') {
+      totalPrice = hoarding.pricing.basePrice * Math.ceil(days / 30);
+    }
+
+    // Add additional costs
+    if (hoarding.pricing.additionalCosts) {
+      hoarding.pricing.additionalCosts.forEach(cost => {
+        if (cost.isIncluded) {
+          totalPrice += cost.cost;
+        }
+      });
+    }
 
     const booking = new Booking({
       hoardingId,
       buyerId: req.user._id,
+      vendorId: hoarding.vendorId,
       startDate: start,
       endDate: end,
       notes,
-      totalPrice
+      pricing: {
+        basePrice: hoarding.pricing.basePrice,
+        per: hoarding.pricing.per,
+        additionalCosts: hoarding.pricing.additionalCosts || [],
+        totalPrice: totalPrice
+      }
     });
 
     await booking.save();
@@ -98,8 +121,9 @@ exports.getMyBookings = async (req, res) => {
     }
 
     const bookings = await Booking.find(query)
-      .populate('hoardingId', 'name image location')
+      .populate('hoardingId', 'name media location mediaType specs averageRating')
       .populate('buyerId', 'firstName lastName email phoneNumber')
+      .populate('vendorId', 'firstName lastName email phoneNumber')
       .skip((page - 1) * limit)
       .limit(Number(limit))
       .sort({ createdAt: -1 });
@@ -131,7 +155,6 @@ exports.updateBookingStatus = async (req, res) => {
     }
 
     // Check authorization and validate status changes
-    const hoarding = await Hoarding.findById(booking.hoardingId);
     
     // Handle buyer cancellation
     if (req.user.role === 'buyer') {
@@ -145,7 +168,7 @@ exports.updateBookingStatus = async (req, res) => {
     }
     // Handle vendor status updates
     else if (req.user.role === 'vendor') {
-      if (hoarding.vendorId.toString() !== req.user._id.toString()) {
+      if (booking.vendorId.toString() !== req.user._id.toString()) {
         return res.status(403).json({ message: 'Not authorized to update this booking' });
       }
       // Validate status transition for vendor
@@ -179,8 +202,7 @@ exports.uploadProof = async (req, res) => {
     }
 
     // Check authorization
-    const hoarding = await Hoarding.findById(booking.hoardingId);
-    if (hoarding.vendorId.toString() !== req.user._id.toString()) {
+    if (booking.vendorId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to upload proof for this booking' });
     }
 
@@ -213,25 +235,19 @@ exports.uploadProof = async (req, res) => {
 exports.getBookingById = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id)
-      .populate('hoardingId', 'name image location')
-      .populate('buyerId', 'username email phoneNumber');
+      .populate('hoardingId', 'name media location mediaType specs averageRating')
+      .populate('buyerId', 'firstName lastName email phoneNumber')
+      .populate('vendorId', 'firstName lastName email phoneNumber');
 
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
 
     // Check authorization
-    const hoarding = await Hoarding.findById(booking.hoardingId);
     if (
       (req.user.role === 'buyer' && booking.buyerId._id.toString() !== req.user._id.toString()) ||
-      (req.user.role === 'vendor' && hoarding.vendorId.toString() !== req.user._id.toString())
+      (req.user.role === 'vendor' && booking.vendorId._id.toString() !== req.user._id.toString())
     ) {
-      // console.log("Not authorized to view this booking");
-      // console.log(req.user.role);
-      // console.log("buyerId: ", booking.buyerId._id.toString());
-      // console.log("userId: ", req.user._id.toString());
-      // console.log("vendorId: ", hoarding.vendorId.toString());
-      // console.log("userId: ", req.user._id.toString());
       return res.status(403).json({ message: 'Not authorized to view this booking' });
     }
 
@@ -265,8 +281,7 @@ exports.updateInstallation = async (req, res) => {
     }
 
     // Check authorization
-    const hoarding = await Hoarding.findById(booking.hoardingId);
-    if (hoarding.vendorId.toString() !== req.user._id.toString()) {
+    if (booking.vendorId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to update installation details' });
     }
 

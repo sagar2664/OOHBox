@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { getVendorHoardings, getVendorBookings } from "../api/api";
+import { getVendorHoardings, getVendorBookings, updateBookingStatus, updateInstallation } from "../api/api";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 function StatusBadge({ status }) {
   const map = {
@@ -85,6 +86,36 @@ export default function VendorDashboard() {
       });
     }
   }, [token, authLoading, hoardingsPage, bookingsPage]);
+
+  const handleBookingAction = async (bookingId, status) => {
+    try {
+      await updateBookingStatus(bookingId, status, token);
+      // Refresh bookings after status update
+      const updatedBookings = await getVendorBookings(token, { page: bookingsPage });
+      setBookings(updatedBookings.bookings || []);
+    } catch (error) {
+      console.error('Error updating booking status:', error);
+      // Handle error (show error message to user)
+    }
+  };
+
+  const handleInstallationAction = async (bookingId, status) => {
+    try {
+      const installationData = {
+        status,
+        ...(status === 'Scheduled' && { scheduledDate: new Date().toISOString() }),
+        ...(status === 'Completed' && { completedDate: new Date().toISOString() })
+      };
+      
+      await updateInstallation(bookingId, installationData, token);
+      // Refresh bookings after installation update
+      const updatedBookings = await getVendorBookings(token, { page: bookingsPage });
+      setBookings(updatedBookings.bookings || []);
+    } catch (error) {
+      console.error('Error updating installation status:', error);
+      // Handle error (show error message to user)
+    }
+  };
 
   // Show loading state while auth is loading or data is being fetched
   if (authLoading || loading) {
@@ -223,6 +254,112 @@ export default function VendorDashboard() {
           totalPages={totalCompletedPages}
           onPageChange={setCompletedPage}
         />
+      </div>
+      {/* Bookings Section */}
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold mb-4">Booking Requests</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {bookings.map(booking => (
+            <div key={booking._id} className="bg-white rounded-lg shadow p-4">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <h3 className="font-medium">{booking.hoardingId?.name}</h3>
+                  <p className="text-sm text-gray-500">
+                    {new Date(booking.startDate).toLocaleDateString()} - {new Date(booking.endDate).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
+                    booking.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                    booking.status === 'accepted' ? 'bg-blue-100 text-blue-700' :
+                    booking.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                    booking.status === 'completed' ? 'bg-green-100 text-green-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                  </span>
+                  <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
+                    booking.verification?.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
+                    booking.verification?.status === 'Verified' ? 'bg-green-100 text-green-700' :
+                    booking.verification?.status === 'Rejected' ? 'bg-red-100 text-red-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {booking.verification?.status || 'Pending'}
+                  </span>
+                  <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
+                    booking.installation?.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
+                    booking.installation?.status === 'Scheduled' ? 'bg-blue-100 text-blue-700' :
+                    booking.installation?.status === 'Completed' ? 'bg-green-100 text-green-700' :
+                    booking.installation?.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {booking.installation?.status || 'Pending'}
+                  </span>
+                </div>
+              </div>
+              <div className="text-sm mb-3">
+                <div>Price: ₹{booking.pricing?.basePrice != null ? booking.pricing.basePrice.toLocaleString('en-IN') : '--'}/{booking.pricing?.per || '--'}</div>
+                <div>Total: ₹{booking.pricing?.totalPrice != null ? booking.pricing.totalPrice.toLocaleString('en-IN') : '--'}</div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  to={`/bookings/${booking._id}`}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  View Details
+                </Link>
+                {booking.status === 'pending' && (
+                  <>
+                    <button
+                      onClick={() => handleBookingAction(booking._id, 'accepted')}
+                      className="text-sm text-green-600 hover:text-green-800"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => handleBookingAction(booking._id, 'rejected')}
+                      className="text-sm text-red-600 hover:text-red-800"
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+                {booking.status === 'accepted' && (
+                  <>
+                    <button
+                      onClick={() => handleBookingAction(booking._id, 'completed')}
+                      className="text-sm text-green-600 hover:text-green-800"
+                    >
+                      Mark as Completed
+                    </button>
+                    <button
+                      onClick={() => handleBookingAction(booking._id, 'cancelled')}
+                      className="text-sm text-red-600 hover:text-red-800"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                )}
+                {booking.status === 'accepted' && booking.installation?.status === 'Pending' && (
+                  <button
+                    onClick={() => handleInstallationAction(booking._id, 'Scheduled')}
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    Schedule Installation
+                  </button>
+                )}
+                {booking.status === 'accepted' && booking.installation?.status === 'Scheduled' && (
+                  <button
+                    onClick={() => handleInstallationAction(booking._id, 'Completed')}
+                    className="text-sm text-green-600 hover:text-green-800"
+                  >
+                    Mark Installation Complete
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

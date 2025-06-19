@@ -62,7 +62,7 @@ exports.getHoardings = async (req, res) => {
             mediaType,
             minPrice,
             maxPrice,
-            status = 'pending',
+            status = 'approved',
             page = 1,
             limit = 10,
             sortBy = 'createdAt',
@@ -82,7 +82,7 @@ exports.getHoardings = async (req, res) => {
         sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
         const hoardings = await Hoarding.find(query)
-            .populate('vendorId', 'username email phoneNumber')
+            .populate('vendorId', 'firstName lastName email phoneNumber')
             .populate('reviews')
             .skip((page - 1) * limit)
             .limit(Number(limit))
@@ -105,7 +105,7 @@ exports.getHoardings = async (req, res) => {
 exports.getHoardingById = async (req, res) => {
     try {
         const hoarding = await Hoarding.findById(req.params.id)
-            .populate('vendorId', 'username email phoneNumber')
+            .populate('vendorId', 'firstName lastName email phoneNumber')
             .populate('reviews')
             .populate('bookings.bookingId');
 

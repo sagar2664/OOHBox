@@ -9,7 +9,7 @@ const router = express.Router();
 // Middleware to reject unknown fields
 const rejectUnknownFields = (req, res, next) => {
     const allowedFields = [
-        'hoardingId', 'startDate', 'endDate', 'notes', 'pricing',
+        'hoardingId', 'startDate', 'endDate', 'notes',
         'installation', 'verification'
     ];
     
@@ -66,30 +66,7 @@ const createBookingValidation = [
         .optional()
         .trim()
         .isLength({ max: 500 })
-        .withMessage('Notes must not exceed 500 characters'),
-    body('pricing.basePrice')
-        .isNumeric()
-        .withMessage('Base price must be a number')
-        .isFloat({ min: 0 })
-        .withMessage('Base price must be greater than or equal to 0'),
-    body('pricing.per')
-        .isIn(['day', 'week', 'month', 'slot'])
-        .withMessage('Invalid pricing period'),
-    body('pricing.additionalCosts')
-        .optional()
-        .isArray()
-        .withMessage('Additional costs must be an array'),
-    body('pricing.additionalCosts.*.name')
-        .optional()
-        .trim()
-        .notEmpty()
-        .withMessage('Additional cost name is required'),
-    body('pricing.additionalCosts.*.cost')
-        .optional()
-        .isNumeric()
-        .withMessage('Additional cost must be a number')
-        .isFloat({ min: 0 })
-        .withMessage('Additional cost must be greater than or equal to 0')
+        .withMessage('Notes must not exceed 500 characters')
 ];
 
 // Validation middleware for updating booking

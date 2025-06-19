@@ -196,14 +196,44 @@ const BookingCard = ({ booking: b }) => (
                     <Icon path="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" className="w-4 h-4 mr-1.5 text-gray-400" />
                     {new Date(b.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} - {new Date(b.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </div>
-                 <div className="text-sm mt-2 text-gray-700">Total: <span className="font-bold">₹{b.totalPrice.toLocaleString('en-IN')}</span></div>
+                <div className="text-sm mt-2 text-gray-700">
+                    <div>Base Price: <span className="font-bold">₹{b.pricing?.basePrice?.toLocaleString('en-IN')}/{b.pricing?.per}</span></div>
+                    {b.pricing?.additionalCosts?.map((cost, index) => (
+                        <div key={index} className="text-gray-600">
+                            {cost.name}: ₹{cost.cost?.toLocaleString('en-IN')} {cost.isIncluded ? '(Included)' : ''}
+                        </div>
+                    ))}
+                    <div className="mt-1">Total: <span className="font-bold">₹{b.pricing?.totalPrice?.toLocaleString('en-IN')}</span></div>
+                </div>
             </div>
 
             {/* Status & Actions */}
             <div className="w-full md:w-auto flex flex-row md:flex-col items-center md:items-end justify-between md:justify-start pt-2 md:pt-0 space-y-0 md:space-y-3">
-                 <StatusBadge status={b.status} />
-                 {/* --- VIEW DETAILS BUTTON RESTORED HERE --- */}
-                 <Link 
+                <div className="flex flex-col items-end gap-1">
+                    <StatusBadge status={b.status} />
+                    {/* Only show verification status if it's meaningful (not default Pending) */}
+                    {b.verification?.status && b.verification.status !== 'Pending' && (
+                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                            b.verification.status === 'Verified' ? 'bg-green-100 text-green-800' :
+                            b.verification.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                            'bg-yellow-100 text-yellow-800'
+                        }`}>
+                            {b.verification.status}
+                        </span>
+                    )}
+                    {/* Only show installation status if it's meaningful (not default Pending) */}
+                    {b.installation?.status && b.installation.status !== 'Pending' && (
+                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                            b.installation.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                            b.installation.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
+                            b.installation.status === 'Scheduled' ? 'bg-blue-100 text-blue-800' :
+                            'bg-yellow-100 text-yellow-800'
+                        }`}>
+                            {b.installation.status}
+                        </span>
+                    )}
+                </div>
+                <Link 
                     to={`/booking/${b._id}`}
                     className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-blue-100 transition-colors"
                 >

@@ -38,22 +38,34 @@ export const getHoardingReviews = (hoardingId, params = {}) => {
   return fetch(`${API_URL}/reviews/hoarding/${hoardingId}?${query}`).then(handleResponse);
 };
 
-export const createBooking = (data, token) =>
-  fetch(`${API_URL}/bookings`, {
-    method: "POST",
+export const createBooking = async (bookingData, token) => {
+  const response = await fetch(`${API_URL}/bookings`, {
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
     },
-    body: JSON.stringify(data),
-  }).then(handleResponse);
+    body: JSON.stringify(bookingData)
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create booking');
+  }
+  return response.json();
+};
 
-export const getMyBookings = (token) =>
-  fetch(`${API_URL}/bookings/me`, {
+export const getMyBookings = async (token) => {
+  const response = await fetch(`${API_URL}/bookings/me`, {
     headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  }).then(handleResponse);
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch bookings');
+  }
+  return response.json();
+};
 
 export const getHoardingBookings = (hoardingId) =>
   fetch(`${API_URL}/bookings/hoarding/${hoardingId}`).then(handleResponse);
@@ -143,55 +155,89 @@ export const deleteHoarding = (id, token) =>
     },
   }).then(handleResponse);
 
-export const getBookingById = (id, token) =>
-  fetch(`${API_URL}/bookings/${id}`, {
+export const getBookingById = async (id, token) => {
+  const response = await fetch(`${API_URL}/bookings/${id}`, {
     headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  }).then(handleResponse);
-
-export const updateBookingStatus = (id, status, token, proofFile = null) => {
-  if (status === 'completed' && proofFile) {
-    const formData = new FormData();
-    formData.append('status', status);
-    formData.append('proofImage', proofFile);
-
-    return fetch(`${API_URL}/bookings/${id}/status`, {
-      method: 'PATCH',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: formData,
-    }).then(handleResponse);
-  } else {
-    return fetch(`${API_URL}/bookings/${id}/status`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ status }),
-    }).then(handleResponse);
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch booking');
   }
+  return response.json();
 };
 
-export const uploadBookingProof = (id, file, token) => {
+export const updateBookingStatus = async (id, status, token, proofFile = null) => {
   const formData = new FormData();
-  formData.append('proofImage', file);
+  formData.append('status', status);
   
-  return fetch(`${API_URL}/bookings/${id}/proof`, {
+  if (proofFile) {
+    formData.append('proofImages', proofFile);
+  }
+
+  const response = await fetch(`${API_URL}/bookings/${id}/status`, {
     method: 'PATCH',
     headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      'Authorization': `Bearer ${token}`
     },
-    body: formData,
-  }).then(async (res) => {
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.message || 'Failed to upload proof');
-    }
-    return data;
+    body: formData
   });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update booking status');
+  }
+  return response.json();
+};
+
+export const updateInstallation = async (id, installationData, token) => {
+  const response = await fetch(`${API_URL}/bookings/${id}/installation`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(installationData)
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update installation');
+  }
+  return response.json();
+};
+
+export const uploadBookingProof = async (id, proofFile, token) => {
+  const formData = new FormData();
+  formData.append('proofImages', proofFile);
+
+  const response = await fetch(`${API_URL}/bookings/${id}/proof`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    body: formData
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to upload proof');
+  }
+  return response.json();
+};
+
+export const updateVerification = async (id, verificationData, token) => {
+  const response = await fetch(`${API_URL}/bookings/${id}/verification`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(verificationData)
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update verification');
+  }
+  return response.json();
 };
 
 export const createReview = (data, token) =>

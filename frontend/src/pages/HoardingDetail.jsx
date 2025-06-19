@@ -94,7 +94,7 @@ export default function HoardingDetail() {
                 hoardingId: id,
                 startDate: bookingForm.startDate,
                 endDate: bookingForm.endDate,
-                notes: bookingForm.notes,
+                notes: bookingForm.notes
             }, token);
 
             if (res.booking) {
@@ -302,10 +302,31 @@ export default function HoardingDetail() {
 
                         <div className="w-full lg:w-1/3">
                             <div className="sticky top-24 space-y-4">
+                                {/* Pricing Card */}
                                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-lg">
                                     <div className="text-gray-500 text-sm mb-1">{hoarding.pricing?.model}</div>
                                     <div className="text-3xl font-extrabold text-blue-600 mb-2">₹{hoarding.pricing?.basePrice.toLocaleString('en-IN')}<span className="text-lg font-medium text-gray-500">/{hoarding.pricing?.per}</span></div>
                                     {hoarding.pricing?.negotiable && <div className="text-xs text-green-600 font-semibold mb-4">Price is negotiable</div>}
+                                    
+                                    {/* Additional Costs */}
+                                    {hoarding.pricing?.additionalCosts && hoarding.pricing.additionalCosts.length > 0 && (
+                                        <div className="border-t pt-4 mb-4">
+                                            <h4 className="font-medium text-gray-900 mb-2">Additional Costs</h4>
+                                            <div className="space-y-2">
+                                                {hoarding.pricing.additionalCosts.map((cost, index) => (
+                                                    <div key={index} className="flex justify-between items-center text-sm">
+                                                        <span className="text-gray-600">{cost.name}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-medium">₹{cost.cost.toLocaleString('en-IN')}</span>
+                                                            {cost.isIncluded && (
+                                                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Included</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                     
                                     {user && user.role === "buyer" ? (
                                         <button onClick={() => setShowBooking(true)} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">Book Now</button>
@@ -314,7 +335,85 @@ export default function HoardingDetail() {
                                     )}
                                     <p className="text-xs text-center text-gray-400 mt-3 flex items-center justify-center gap-1"><Icon path="M12 15v2m-6.41-1.41l-1.42 1.42M4 12H2m1.41-6.41L2 4.17m1.42-1.42L4.83 4M12 2v2m6.41 1.41l1.42-1.42M20 12h2m-1.41 6.41l1.42 1.42M12 22v-2" className="w-3 h-3"/>Secure Booking via OOHBox</p>
                                 </div>
-                                <div className="bg-white rounded-xl border p-4 text-sm text-gray-600 shadow-lg">{/* ... Vendor & Legal Details ... */}</div>
+
+                                {/* Vendor Contact Information */}
+                                {hoarding.vendorId && (
+                                    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-lg">
+                                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                            <Icon path="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" className="w-5 h-5" />
+                                            Vendor Information
+                                        </h3>
+                                        <div className="space-y-3">
+                                            <div>
+                                                <div className="text-sm text-gray-500">Name</div>
+                                                <div className="font-medium text-gray-900">
+                                                    {hoarding.vendorId.firstName} {hoarding.vendorId.lastName}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="text-sm text-gray-500">Email</div>
+                                                <div className="font-medium">
+                                                    <a 
+                                                        href={`mailto:${hoarding.vendorId.email}`} 
+                                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                                    >
+                                                        {hoarding.vendorId.email}
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="text-sm text-gray-500">Phone</div>
+                                                <div className="font-medium">
+                                                    <a 
+                                                        href={`tel:${hoarding.vendorId.phoneNumber}`} 
+                                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                                    >
+                                                        {hoarding.vendorId.phoneNumber}
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Legal & Verification Details */}
+                                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-lg">
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                        <Icon path="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" className="w-5 h-5" />
+                                        Legal & Verification
+                                    </h3>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-gray-600">Verification Status</span>
+                                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                                hoarding.verification?.status === 'Verified' ? 'bg-green-100 text-green-800' :
+                                                hoarding.verification?.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-red-100 text-red-800'
+                                            }`}>
+                                                {hoarding.verification?.status || 'Unverified'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-gray-600">Permit Status</span>
+                                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                                hoarding.legal?.permitStatus === 'Approved' ? 'bg-green-100 text-green-800' :
+                                                hoarding.legal?.permitStatus === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                hoarding.legal?.permitStatus === 'Expired' ? 'bg-red-100 text-red-800' :
+                                                'bg-gray-100 text-gray-800'
+                                            }`}>
+                                                {hoarding.legal?.permitStatus || 'Not Required'}
+                                            </span>
+                                        </div>
+                                        {hoarding.legal?.permitExpiryDate && (
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm text-gray-600">Permit Expiry</span>
+                                                <span className="text-sm font-medium">
+                                                    {new Date(hoarding.legal.permitExpiryDate).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
