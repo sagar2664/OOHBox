@@ -10,18 +10,16 @@ const router = express.Router();
 const rejectUnknownFields = (req, res, next) => {
     const allowedFields = [
         'hoardingId', 'startDate', 'endDate', 'notes',
-        'installation', 'verification'
+        'installation', 'verification', 'status', "scheduledDate"
     ];
-    
+    if (!req.body || typeof req.body !== 'object') req.body = {};
     const unknownFields = Object.keys(req.body).filter(field => !allowedFields.includes(field));
-    
     if (unknownFields.length > 0) {
         return res.status(400).json({
             message: 'Invalid fields in request',
             unknownFields: unknownFields
         });
     }
-    
     next();
 };
 

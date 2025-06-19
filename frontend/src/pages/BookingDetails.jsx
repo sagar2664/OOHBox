@@ -140,7 +140,7 @@ export default function BookingDetails() {
     status: 'Scheduled',
     notes: ''
   });
-  const [proofFile, setProofFile] = useState(null);
+  const [proofFiles, setProofFiles] = useState([]);
 
   // Fetch booking data
   const fetchBookingData = async () => {
@@ -188,22 +188,13 @@ export default function BookingDetails() {
     setSuccessMessage(null);
 
     try {
-      if (status === 'completed' && !proofFile) {
-        setError('Please upload proof of display before marking as completed');
-        setActionLoading(false);
-        return;
-      }
-      
-      if (status === 'completed') {
-        await updateBookingStatus(id, status, token, proofFile);
-      } else {
+      // Only allow direct status change for non-completed statuses
+      if (status !== 'completed') {
         await updateBookingStatus(id, status, token);
+        await fetchBookingData();
+        setSuccessMessage(`Booking ${status} successfully`);
       }
-      
-      await fetchBookingData();
-      setProofFile(null);
-      setShowProofUpload(false);
-      setSuccessMessage(`Booking ${status} successfully`);
+      // For completed, use the proof upload form instead
     } catch (err) {
       setError(err.message);
     } finally {
@@ -244,8 +235,8 @@ export default function BookingDetails() {
       return;
     }
 
-    if (!proofFile) {
-      setError('Please select an image to upload');
+    if (!proofFiles || proofFiles.length === 0) {
+      setError('Please select at least one image to upload');
       return;
     }
 
@@ -254,16 +245,25 @@ export default function BookingDetails() {
     setSuccessMessage(null);
 
     try {
-      await uploadBookingProof(id, proofFile, token);
+      await uploadBookingProof(id, proofFiles, token);
+      // After successful proof upload, mark as completed
+      await updateBookingStatus(id, 'completed', token);
       await fetchBookingData();
-      setProofFile(null);
+      setProofFiles([]);
       setShowProofUpload(false);
-      setSuccessMessage('Proof uploaded successfully');
+      setSuccessMessage('Proof uploaded and booking marked as completed successfully');
     } catch (err) {
       setError(err.message);
     } finally {
       setActionLoading(false);
     }
+  };
+
+  // Handle file selection (multiple)
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    setProofFiles(files);
+    setError(null);
   };
 
   // Handle review submission
@@ -298,15 +298,6 @@ export default function BookingDetails() {
       setError(err.message);
     } finally {
       setActionLoading(false);
-    }
-  };
-
-  // Handle file selection
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setProofFile(file);
-      setError(null);
     }
   };
 
@@ -755,17 +746,18 @@ export default function BookingDetails() {
                             <input 
                               type="file" 
                               accept="image/*" 
+                              multiple
                               onChange={handleFileChange}
                               className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                               required 
                             />
-                            <p className="text-xs text-gray-500 mt-1">Upload a photo showing the hoarding with your advertisement displayed.</p>
+                            <p className="text-xs text-gray-500 mt-1">Upload photos showing the hoarding with your advertisement displayed.</p>
                           </div>
                           <div className="flex gap-2">
                             <button 
                               className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:bg-gray-400" 
                               type="submit" 
-                              disabled={actionLoading || !proofFile}
+                              disabled={actionLoading || !proofFiles.length}
                             >
                               Complete
                             </button>
@@ -774,7 +766,7 @@ export default function BookingDetails() {
                               type="button" 
                               onClick={() => {
                                 setShowProofUpload(false);
-                                setProofFile(null);
+                                setProofFiles([]);
                                 setError(null);
                               }}
                             >

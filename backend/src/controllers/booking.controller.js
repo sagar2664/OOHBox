@@ -155,7 +155,6 @@ exports.updateBookingStatus = async (req, res) => {
     }
 
     // Check authorization and validate status changes
-    
     // Handle buyer cancellation
     if (req.user.role === 'buyer') {
       if (booking.buyerId.toString() !== req.user._id.toString()) {
@@ -172,19 +171,14 @@ exports.updateBookingStatus = async (req, res) => {
         return res.status(403).json({ message: 'Not authorized to update this booking' });
       }
       // Validate status transition for vendor
-      if (status === 'completed' && !req.file) {
-        return res.status(400).json({ message: 'Proof image is required to complete booking' });
+      if (status === 'completed') {
+        if (!booking.proof || !booking.proof.images || booking.proof.images.length === 0) {
+          return res.status(400).json({ message: 'At least one proof image is required to complete booking' });
+        }
       }
     }
 
     booking.status = status;
-    if (req.file) {
-      booking.proofImage = {
-        url: req.file.location,
-        key: req.file.key
-      };
-      booking.proofUploadedAt = new Date();
-    }
     await booking.save();
 
     res.json({ message: 'Booking status updated successfully', booking });
@@ -193,7 +187,7 @@ exports.updateBookingStatus = async (req, res) => {
   }
 };
 
-// Upload proof of display
+// Upload proof of display (multiple images)
 exports.uploadProof = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
@@ -206,26 +200,27 @@ exports.uploadProof = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to upload proof for this booking' });
     }
 
-    if (!req.file) {
-      return res.status(400).json({ message: 'Proof image is required' });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: 'At least one proof image is required' });
     }
 
-    // Delete old proof image from S3 if exists
-    if (booking.proofImage && booking.proofImage.key) {
-      await s3Client.send(new DeleteObjectCommand({
-        Bucket: process.env.AWS_BUCKET_NAME,
-        Key: booking.proofImage.key
-      }));
+    // Add new proof images
+    req.files.forEach(file => {
+      booking.proof.images.push({
+        url: file.location,
+        key: file.key,
+        uploadedAt: new Date()
+      });
+    });
+
+    // Optionally handle notes
+    if (req.body.notes) {
+      booking.proof.notes = req.body.notes;
     }
 
-    booking.proofImage = {
-      url: req.file.location,
-      key: req.file.key
-    };
-    booking.proofUploadedAt = new Date();
     await booking.save();
 
-    res.json({ message: 'Proof uploaded successfully', booking });
+    res.json({ message: 'Proof uploaded successfully', proof: booking.proof });
   } catch (error) {
     res.status(500).json({ message: 'Error uploading proof', error: error.message });
   }
@@ -273,6 +268,7 @@ exports.getBookingsForHoarding = async (req, res) => {
 // Update installation details
 exports.updateInstallation = async (req, res) => {
   try {
+    console.log(req.body);
     const { scheduledDate, status, notes } = req.body;
     const booking = await Booking.findById(req.params.id);
     

@@ -169,20 +169,28 @@ export const getBookingById = async (id, token) => {
 };
 
 export const updateBookingStatus = async (id, status, token, proofFile = null) => {
-  const formData = new FormData();
-  formData.append('status', status);
-  
+  let response;
   if (proofFile) {
+    const formData = new FormData();
+    formData.append('status', status);
     formData.append('proofImages', proofFile);
+    response = await fetch(`${API_URL}/bookings/${id}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    });
+  } else {
+    response = await fetch(`${API_URL}/bookings/${id}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ status })
+    });
   }
-
-  const response = await fetch(`${API_URL}/bookings/${id}/status`, {
-    method: 'PATCH',
-    headers: {
-      'Authorization': `Bearer ${token}`
-    },
-    body: formData
-  });
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.message || 'Failed to update booking status');
@@ -206,10 +214,13 @@ export const updateInstallation = async (id, installationData, token) => {
   return response.json();
 };
 
-export const uploadBookingProof = async (id, proofFile, token) => {
+export const uploadBookingProof = async (id, proofFiles, token) => {
   const formData = new FormData();
-  formData.append('proofImages', proofFile);
-
+  if (Array.isArray(proofFiles)) {
+    proofFiles.forEach(file => formData.append('proofImages', file));
+  } else if (proofFiles) {
+    formData.append('proofImages', proofFiles);
+  }
   const response = await fetch(`${API_URL}/bookings/${id}/proof`, {
     method: 'PATCH',
     headers: {

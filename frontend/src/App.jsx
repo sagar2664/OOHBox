@@ -15,6 +15,7 @@ import BookingDetails from "./pages/BookingDetails";
 import { AuthProvider } from "./hooks/useAuth";
 import AdminDashboard from "./pages/AdminDashboard";
 import MapTestPage from "./pages/MapTestPage";
+import ForMediaOwnersPage from "./pages/ForMediaOwners";
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="/edit-hoarding/:id" element={<EditHoarding />} />
           <Route path="/booking/:id" element={<BookingDetails />} />
           <Route path="/map-test" element={<MapTestPage />} />
+          <Route path="/for-media-owners" element={<ForMediaOwnersPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
