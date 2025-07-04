@@ -218,7 +218,7 @@ export default function Home() {
             <div>
               <h2 className="text-3xl md:text-4xl font-bold mb-4">Own an Ad Space?</h2>
               <p className="text-lg text-gray-700 mb-6">Maximize your revenue by listing your property on OOHBox. Reach thousands of potential advertisers, manage your bookings effortlessly, and get paid securely. It's free to list!</p>
-              <button onClick={() => navigate('/list-your-property')} className="bg-blue-600 text-white font-bold py-3 px-8 rounded-md text-lg hover:bg-blue-700 transition-all shadow-lg">List Your Property Today</button>
+              <button onClick={() => navigate('/for-media-owners')} className="bg-blue-600 text-white font-bold py-3 px-8 rounded-md text-lg hover:bg-blue-700 transition-all shadow-lg">List Your Property Today</button>
             </div>
             <div className="h-80 rounded-lg overflow-hidden shadow-xl">
               <img src={mediaOwnerImage} alt="Media owner managing properties" className="w-full h-full object-cover" />
