@@ -26,7 +26,7 @@ const parseJsonData = (req, res, next) => {
 const rejectUnknownFields = (req, res, next) => {
     const allowedFields = [
         'name', 'description', 'mediaType', 'specs', 'pricing', 'location',
-        'audience', 'installation', 'legal', 'verification', 'deleteMediaKeys'
+        'audience', 'installation', 'legal', 'verification', 'deleteMediaKeys', 'digitalSpecs', 'mediaCaptions', 'media', 'tags'
     ];
     
     const unknownFields = Object.keys(req.body).filter(field => !allowedFields.includes(field));

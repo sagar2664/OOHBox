@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getHoardingById, updateHoarding } from '../api/api';
 import { useAuth } from '../hooks/useAuth';
+import LocationPickerMap from '../components/LocationPickerMap';
 
 const HOARDING_TYPES = [
   { value: 'Static Billboard', label: 'Static Billboard' },
@@ -33,6 +34,13 @@ const PRICING_PERIODS = [
   { value: 'slot', label: 'Per Slot' },
 ];
 
+const TAG_OPTIONS = [
+  'Frequently Booked',
+  'Popular',
+  'Filling Fast',
+  'New Listing',
+];
+
 export default function EditHoarding() {
   const { token } = useAuth();
   const { id } = useParams();
@@ -48,71 +56,75 @@ export default function EditHoarding() {
   useEffect(() => {
     getHoardingById(id)
       .then(data => {
+        console.log('Fetched hoarding data:', data);
+        if (!data || typeof data !== 'object' || !data._id) {
+          setError('Invalid or missing hoarding data.');
+          setLoading(false);
+          return;
+        }
         setForm({
           name: data.name || '',
           description: data.description || '',
           mediaType: data.mediaType || 'Static Billboard',
           specs: {
-            width: data.specs?.width || '',
-            height: data.specs?.height || '',
-            units: data.specs?.units || 'ft',
-            aspectRatio: data.specs?.aspectRatio || '',
-            orientation: data.specs?.orientation || '',
-            illumination: data.specs?.illumination || 'Non-Illuminated'
+            width: data.specs?.width ?? '',
+            height: data.specs?.height ?? '',
+            units: data.specs?.units ?? 'ft',
+            aspectRatio: data.specs?.aspectRatio ?? '',
+            orientation: data.specs?.orientation ?? '',
+            illumination: data.specs?.illumination ?? 'Non-Illuminated'
           },
           digitalSpecs: {
-            resolution: data.digitalSpecs?.resolution || '',
+            resolution: data.digitalSpecs?.resolution ?? '',
             pixelDimensions: {
-              width: data.digitalSpecs?.pixelDimensions?.width || '',
-              height: data.digitalSpecs?.pixelDimensions?.height || ''
+              width: data.digitalSpecs?.pixelDimensions?.width ?? '',
+              height: data.digitalSpecs?.pixelDimensions?.height ?? ''
             }
           },
           pricing: {
-            basePrice: data.pricing?.basePrice || '',
-            per: data.pricing?.per || 'month',
-            model: data.pricing?.model || 'Flat Rate',
-            negotiable: data.pricing?.negotiable || false,
-            additionalCosts: data.pricing?.additionalCosts || []
+            basePrice: data.pricing?.basePrice ?? '',
+            per: data.pricing?.per ?? 'month',
+            model: data.pricing?.model ?? 'Flat Rate',
+            negotiable: data.pricing?.negotiable ?? false,
+            additionalCosts: data.pricing?.additionalCosts ?? []
           },
           location: {
-            address: data.location?.address || '',
-            landmark: data.location?.landmark || '',
-            area: data.location?.area || '',
-            city: data.location?.city || '',
-            state: data.location?.state || '',
-            coordinates: {
-              coordinates: [
-                data.location?.coordinates?.coordinates?.[0] || '',
-                data.location?.coordinates?.coordinates?.[1] || '',
-              ],
-            },
+            address: data.location?.address ?? '',
+            landmark: data.location?.landmark ?? '',
+            area: data.location?.area ?? '',
+            city: data.location?.city ?? '',
+            state: data.location?.state ?? '',
+            coordinates: data.location?.coordinates?.type === 'Point' && Array.isArray(data.location?.coordinates?.coordinates)
+              ? { type: 'Point', coordinates: [data.location.coordinates[0], data.location.coordinates[1]] }
+              : { type: 'Point', coordinates: [] },
           },
           audience: {
             footfall: {
-              volume: data.audience?.footfall?.volume || '',
-              period: data.audience?.footfall?.period || 'daily',
-              source: data.audience?.footfall?.source || ''
+              volume: data.audience?.footfall?.volume ?? '',
+              period: data.audience?.footfall?.period ?? 'daily',
+              source: data.audience?.footfall?.source ?? ''
             },
-            demographics: data.audience?.demographics || [],
-            commutePatterns: data.audience?.commutePatterns || [],
-            bestSuitedFor: data.audience?.bestSuitedFor || [],
-            pointsOfInterest: data.audience?.pointsOfInterest || []
+            demographics: Array.isArray(data.audience?.demographics) ? data.audience.demographics.join(', ') : '',
+            commutePatterns: Array.isArray(data.audience?.commutePatterns) ? data.audience.commutePatterns.join(', ') : '',
+            bestSuitedFor: Array.isArray(data.audience?.bestSuitedFor) ? data.audience.bestSuitedFor.join(', ') : '',
+            pointsOfInterest: Array.isArray(data.audience?.pointsOfInterest) ? data.audience.pointsOfInterest.join(', ') : '',
           },
           installation: {
-            leadTimeDays: data.installation?.leadTimeDays || '',
-            accessNotes: data.installation?.accessNotes || ''
+            leadTimeDays: data.installation?.leadTimeDays ?? '',
+            accessNotes: data.installation?.accessNotes ?? ''
           },
           legal: {
-            permitStatus: data.legal?.permitStatus || 'Pending',
-            permitId: data.legal?.permitId || '',
-            permitExpiryDate: data.legal?.permitExpiryDate || ''
+            permitStatus: data.legal?.permitStatus ?? 'Pending',
+            permitId: data.legal?.permitId ?? '',
+            permitExpiryDate: data.legal?.permitExpiryDate ?? ''
           },
-          media: data.media || []
+          media: Array.isArray(data.media) ? data.media : [],
+          tags: Array.isArray(data.tags) ? data.tags : [],
         });
         setLoading(false);
       })
       .catch(err => {
-        setError('Failed to load hoarding');
+        setError('Failed to load hoarding: ' + (err?.message || 'Unknown error'));
         setLoading(false);
       });
   }, [id]);
@@ -186,37 +198,93 @@ export default function EditHoarding() {
     }));
   };
 
+  const handleTagChange = (tag) => {
+    setForm(prev => ({
+      ...prev,
+      tags: prev.tags.includes(tag)
+        ? prev.tags.filter(t => t !== tag)
+        : [...prev.tags, tag],
+    }));
+  };
+
+  const handleAdditionalCostChange = (index, field, value) => {
+    setForm(prev => {
+      const newCosts = [...prev.pricing.additionalCosts];
+      newCosts[index][field] = field === 'isIncluded' ? value : value;
+      return {
+        ...prev,
+        pricing: {
+          ...prev.pricing,
+          additionalCosts: newCosts,
+        },
+      };
+    });
+  };
+
+  const addAdditionalCost = () => {
+    setForm(prev => ({
+      ...prev,
+      pricing: {
+        ...prev.pricing,
+        additionalCosts: [...prev.pricing.additionalCosts, { name: '', cost: '', isIncluded: false }],
+      },
+    }));
+  };
+
+  const removeAdditionalCost = (index) => {
+    setForm(prev => {
+      const newCosts = [...prev.pricing.additionalCosts];
+      newCosts.splice(index, 1);
+      return {
+        ...prev,
+        pricing: {
+          ...prev.pricing,
+          additionalCosts: newCosts,
+        },
+      };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
     setSubmitting(true);
+    setError(null);
+
+    // Prepare the form data as a plain object (not FormData)
+    const processedForm = {
+      ...form,
+      // Ensure location is in GeoJSON format
+      location: form.location && form.location.type === 'Point' ? form.location : {
+        type: 'Point',
+        coordinates: [form.location?.coordinates?.[0] || 0, form.location?.coordinates?.[1] || 0],
+      },
+    };
 
     try {
-      const formData = new FormData();
-      formData.append('data', JSON.stringify({
-        ...form,
-        deleteMediaKeys
-      }));
-      
-      mediaFiles.forEach((file, index) => {
-        formData.append('media', file);
-        if (mediaCaptions[index]) {
-          formData.append(`mediaCaptions[${index}]`, mediaCaptions[index]);
-        }
-      });
-
-      await updateHoarding(id, formData, token);
-      navigate('/vendor-dashboard');
+      await updateHoarding(id, processedForm, mediaFiles, token); // Pass plain object and array
+      navigate(`/hoardings/${id}`);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to update hoarding');
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleLocationChange = (coords) => {
+    setForm(prevForm => ({
+      ...prevForm,
+      location: {
+        ...prevForm.location,
+        coordinates: coords
+          ? { type: 'Point', coordinates: [coords.lng, coords.lat] }
+          : { type: 'Point', coordinates: [] },
+      },
+    }));
+  };
+
   if (loading) return <div className="text-center py-8">Loading...</div>;
   if (error) return <div className="text-center py-8 text-red-600">{error}</div>;
-  if (!form) return null;
+  if (!form) return <div className="text-center py-8 text-red-600">Form data is missing or invalid.</div>;
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4">
@@ -246,7 +314,7 @@ export default function EditHoarding() {
         {/* Specifications */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold border-b pb-2">Specifications</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block font-semibold mb-1">Width<span className="text-red-500">*</span></label>
               <input name="specs.width" value={form.specs.width} onChange={handleChange} className="w-full border rounded px-3 py-2" type="number" required />
@@ -262,12 +330,12 @@ export default function EditHoarding() {
                 <option value="m">Meters</option>
               </select>
             </div>
-          </div>
-          <div>
-            <label className="block font-semibold mb-1">Illumination</label>
-            <select name="specs.illumination" value={form.specs.illumination} onChange={handleChange} className="w-full border rounded px-3 py-2">
-              {ILLUMINATION_TYPES.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-            </select>
+            <div>
+              <label className="block font-semibold mb-1">Illumination</label>
+              <select name="specs.illumination" value={form.specs.illumination} onChange={handleChange} className="w-full border rounded px-3 py-2">
+                {ILLUMINATION_TYPES.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -278,7 +346,7 @@ export default function EditHoarding() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block font-semibold mb-1">Resolution</label>
-                <input name="digitalSpecs.resolution" value={form.digitalSpecs.resolution} onChange={handleChange} className="w-full border rounded px-3 py-2" />
+                <input name="digitalSpecs.resolution" value={form.digitalSpecs.resolution} onChange={handleChange} className="w-full border rounded px-3 py-2" placeholder="e.g., 1920x1080" />
               </div>
               <div>
                 <label className="block font-semibold mb-1">Pixel Dimensions</label>
@@ -294,7 +362,7 @@ export default function EditHoarding() {
         {/* Pricing */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold border-b pb-2">Pricing</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block font-semibold mb-1">Base Price<span className="text-red-500">*</span></label>
               <input name="pricing.basePrice" value={form.pricing.basePrice} onChange={handleChange} className="w-full border rounded px-3 py-2" type="number" required />
@@ -311,19 +379,17 @@ export default function EditHoarding() {
                 {PRICING_MODELS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
               </select>
             </div>
-          </div>
-          <div>
-            <label className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mt-6">
               <input type="checkbox" name="pricing.negotiable" checked={form.pricing.negotiable} onChange={handleChange} />
               <span>Price is negotiable</span>
-            </label>
+            </div>
           </div>
         </div>
 
         {/* Location */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold border-b pb-2">Location</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block font-semibold mb-1">Address<span className="text-red-500">*</span></label>
               <input name="location.address" value={form.location.address} onChange={handleChange} className="w-full border rounded px-3 py-2" required />
@@ -345,15 +411,20 @@ export default function EditHoarding() {
               <input name="location.state" value={form.location.state} onChange={handleChange} className="w-full border rounded px-3 py-2" required />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block font-semibold mb-1">Latitude<span className="text-red-500">*</span></label>
-              <input name="latitude" value={form.location.coordinates.coordinates[1]} onChange={handleChange} className="w-full border rounded px-3 py-2" type="number" step="any" required />
-            </div>
-            <div>
-              <label className="block font-semibold mb-1">Longitude<span className="text-red-500">*</span></label>
-              <input name="longitude" value={form.location.coordinates.coordinates[0]} onChange={handleChange} className="w-full border rounded px-3 py-2" type="number" step="any" required />
-            </div>
+          <div className="mt-4">
+            <label className="block font-semibold mb-1">Select Location on Map<span className="text-red-500">*</span></label>
+            <LocationPickerMap
+              value={
+                form.location.coordinates &&
+                Array.isArray(form.location.coordinates.coordinates) &&
+                form.location.coordinates.coordinates.length === 2 &&
+                typeof form.location.coordinates.coordinates[0] === 'number' &&
+                typeof form.location.coordinates.coordinates[1] === 'number'
+                  ? { lat: form.location.coordinates.coordinates[1], lng: form.location.coordinates.coordinates[0] }
+                  : null
+              }
+              onChange={coords => handleLocationChange(coords)}
+            />
           </div>
         </div>
 
@@ -420,6 +491,80 @@ export default function EditHoarding() {
               <textarea name="installation.accessNotes" value={form.installation.accessNotes} onChange={handleChange} className="w-full border rounded px-3 py-2" rows={2} />
             </div>
           </div>
+        </div>
+
+        {/* Tags */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold border-b pb-2">Tags</h2>
+          <div className="flex flex-wrap gap-2">
+            {TAG_OPTIONS.map(tag => (
+              <label key={tag} className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={form.tags.includes(tag)}
+                  onChange={() => handleTagChange(tag)}
+                />
+                <span>{tag}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Audience commutePatterns and pointsOfInterest */}
+        <div className="space-y-4">
+          <label className="block font-semibold mb-1">Commute Patterns</label>
+          <textarea
+            name="audience.commutePatterns"
+            value={form.audience.commutePatterns}
+            onChange={handleChange}
+            className="w-full border rounded px-3 py-2"
+            rows={2}
+            placeholder="e.g., Office Goers, Shoppers, Tourists"
+          />
+          <p className="text-xs text-gray-500 mt-1">Enter comma-separated values.</p>
+          <label className="block font-semibold mb-1">Points of Interest</label>
+          <textarea
+            name="audience.pointsOfInterest"
+            value={form.audience.pointsOfInterest}
+            onChange={handleChange}
+            className="w-full border rounded px-3 py-2"
+            rows={2}
+            placeholder="e.g., Malls, Metro Stations, Parks"
+          />
+          <p className="text-xs text-gray-500 mt-1">Enter comma-separated values.</p>
+        </div>
+
+        {/* Additional Costs */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold border-b pb-2">Additional Costs</h2>
+          {form.pricing.additionalCosts.map((cost, idx) => (
+            <div key={idx} className="flex gap-2 items-center">
+              <input
+                type="text"
+                placeholder="Name"
+                value={cost.name}
+                onChange={e => handleAdditionalCostChange(idx, 'name', e.target.value)}
+                className="border rounded px-2 py-1"
+              />
+              <input
+                type="number"
+                placeholder="Cost"
+                value={cost.cost}
+                onChange={e => handleAdditionalCostChange(idx, 'cost', e.target.value)}
+                className="border rounded px-2 py-1"
+              />
+              <label className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={cost.isIncluded}
+                  onChange={e => handleAdditionalCostChange(idx, 'isIncluded', e.target.checked)}
+                />
+                Included
+              </label>
+              <button type="button" onClick={() => removeAdditionalCost(idx)} className="text-red-500">Remove</button>
+            </div>
+          ))}
+          <button type="button" onClick={addAdditionalCost} className="bg-blue-100 text-blue-700 px-2 py-1 rounded">Add Cost</button>
         </div>
 
         {error && <div className="text-red-600 text-sm">{error}</div>}
