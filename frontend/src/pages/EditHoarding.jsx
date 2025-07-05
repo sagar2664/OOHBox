@@ -95,8 +95,8 @@ export default function EditHoarding() {
             city: data.location?.city ?? '',
             state: data.location?.state ?? '',
             coordinates: data.location?.coordinates?.type === 'Point' && Array.isArray(data.location?.coordinates?.coordinates)
-              ? { type: 'Point', coordinates: [data.location.coordinates[0], data.location.coordinates[1]] }
-              : { type: 'Point', coordinates: [] },
+              ? { type: 'Point', coordinates: data.location.coordinates.coordinates }
+              : { type: 'Point', coordinates: [0, 0] },
           },
           audience: {
             footfall: {
@@ -253,10 +253,36 @@ export default function EditHoarding() {
     // Prepare the form data as a plain object (not FormData)
     const processedForm = {
       ...form,
-      // Ensure location is in GeoJSON format
-      location: form.location && form.location.type === 'Point' ? form.location : {
-        type: 'Point',
-        coordinates: [form.location?.coordinates?.[0] || 0, form.location?.coordinates?.[1] || 0],
+      // Ensure location has the correct structure expected by backend
+      location: {
+        address: form.location?.address || '',
+        landmark: form.location?.landmark || '',
+        area: form.location?.area || '',
+        city: form.location?.city || '',
+        state: form.location?.state || '',
+        coordinates: {
+          type: 'Point',
+          coordinates: form.location?.coordinates?.coordinates || [0, 0]
+        }
+      },
+      // Process audience arrays from comma-separated strings back to arrays
+      audience: {
+        ...form.audience,
+        demographics: form.audience?.demographics ? form.audience.demographics.split(',').map(s => s.trim()).filter(s => s) : [],
+        commutePatterns: form.audience?.commutePatterns ? form.audience.commutePatterns.split(',').map(s => s.trim()).filter(s => s) : [],
+        bestSuitedFor: form.audience?.bestSuitedFor ? form.audience.bestSuitedFor.split(',').map(s => s.trim()).filter(s => s) : [],
+        pointsOfInterest: form.audience?.pointsOfInterest ? form.audience.pointsOfInterest.split(',').map(s => s.trim()).filter(s => s) : [],
+      },
+      // Ensure specs are numbers
+      specs: {
+        ...form.specs,
+        width: Number(form.specs?.width) || 0,
+        height: Number(form.specs?.height) || 0,
+      },
+      // Ensure pricing is a number
+      pricing: {
+        ...form.pricing,
+        basePrice: Number(form.pricing?.basePrice) || 0,
       },
     };
 
@@ -277,7 +303,7 @@ export default function EditHoarding() {
         ...prevForm.location,
         coordinates: coords
           ? { type: 'Point', coordinates: [coords.lng, coords.lat] }
-          : { type: 'Point', coordinates: [] },
+          : { type: 'Point', coordinates: [0, 0] },
       },
     }));
   };
