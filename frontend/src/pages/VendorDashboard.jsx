@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { getVendorHoardings, getVendorBookings, updateBookingStatus } from "../api/api";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
 // --- HELPER & UI COMPONENTS (with enhancements) ---
@@ -53,6 +53,20 @@ const WelcomeGuide = ({ name, onDismiss }) => (
     </div>
 );
 
+const EmptyState = ({ message, ctaText, ctaLink }) => (
+    <div className="text-center py-12">
+        <div className="text-gray-400 mb-4">
+            <Icon path="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" className="w-16 h-16 mx-auto" />
+        </div>
+        <p className="text-gray-500 mb-4">{message}</p>
+        {ctaText && ctaLink && (
+            <button onClick={() => window.location.href = ctaLink} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition">
+                {ctaText}
+            </button>
+        )}
+    </div>
+);
+
 
 // =================================================================================
 // MAIN VENDOR DASHBOARD COMPONENT
@@ -60,6 +74,7 @@ const WelcomeGuide = ({ name, onDismiss }) => (
 export default function VendorDashboard() {
     const { user, token, loading: authLoading } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     
     const [hoardings, setHoardings] = useState([]);
     const [bookings, setBookings] = useState([]);
@@ -67,6 +82,15 @@ export default function VendorDashboard() {
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
     const [showWelcome, setShowWelcome] = useState(true); // To control the welcome guide
+
+    // Handle URL query parameters for tab switching
+    useEffect(() => {
+        const urlParams = new URLSearchParams(location.search);
+        const tabParam = urlParams.get('tab');
+        if (tabParam && ['overview', 'hoardings', 'bookings', 'history'].includes(tabParam)) {
+            setActiveTab(tabParam);
+        }
+    }, [location.search]);
 
     // Original useEffect logic preserved
     useEffect(() => {
@@ -156,7 +180,14 @@ export default function VendorDashboard() {
                 <div className="border-b border-gray-200 mb-8">
                     <nav className="-mb-px flex space-x-6 overflow-x-auto">
                         {Object.keys(TABS).map(tabKey => (
-                            <button key={tabKey} onClick={() => setActiveTab(tabKey)} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tabKey ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}>
+                            <button key={tabKey} onClick={() => {
+                                setActiveTab(tabKey);
+                                // Update URL without page reload
+                                const newUrl = tabKey === 'overview' 
+                                    ? '/vendor-dashboard' 
+                                    : `/vendor-dashboard?tab=${tabKey}`;
+                                navigate(newUrl, { replace: true });
+                            }} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tabKey ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}>
                                 {TABS[tabKey]}
                             </button>
                         ))}
@@ -165,7 +196,7 @@ export default function VendorDashboard() {
                 
                 <AnimatePresence mode="wait">
                     <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
-                        {activeTab === 'overview' && <DashboardOverview stats={stats} hoardings={hoardings} bookings={bookings} navigate={navigate} />}
+                        {activeTab === 'overview' && <DashboardOverview stats={stats} hoardings={hoardings} bookings={bookings} navigate={navigate} setActiveTab={setActiveTab} />}
                         {activeTab === 'hoardings' && <HoardingsList hoardings={hoardings} navigate={navigate} />}
                         {activeTab === 'bookings' && <BookingsList bookings={bookings.filter(b => ['pending', 'accepted'].includes(b.status))} handleBookingAction={handleBookingAction} navigate={navigate} />}
                         {activeTab === 'history' && <BookingsList bookings={bookings.filter(b => ['completed', 'rejected', 'cancelled'].includes(b.status))} handleBookingAction={handleBookingAction} navigate={navigate} isHistory={true} />}
@@ -179,7 +210,7 @@ export default function VendorDashboard() {
 
 // --- TAB CONTENT COMPONENTS ---
 
-const DashboardOverview = ({ stats, hoardings, bookings, navigate }) => {
+const DashboardOverview = ({ stats, hoardings, bookings, navigate, setActiveTab }) => {
     const recentActivity = bookings.slice(0, 3);
     return (
         <div className="space-y-8">
@@ -196,7 +227,10 @@ const DashboardOverview = ({ stats, hoardings, bookings, navigate }) => {
                         <p className="font-bold text-gray-800">Add a New Hoarding</p>
                         <p className="text-sm text-gray-500">List a new ad space to start receiving bookings.</p>
                      </button>
-                     <button onClick={() => navigate('/vendor-dashboard?tab=bookings')} className="bg-white p-6 rounded-xl shadow-sm border text-left hover:border-blue-500 hover:shadow-md transition-all">
+                     <button onClick={() => {
+                         setActiveTab('bookings');
+                         navigate('/vendor-dashboard?tab=bookings', { replace: true });
+                     }} className="bg-white p-6 rounded-xl shadow-sm border text-left hover:border-blue-500 hover:shadow-md transition-all">
                         <Icon path="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" className="w-8 h-8 text-blue-600 mb-2"/>
                         <p className="font-bold text-gray-800">Review Bookings</p>
                         <p className="text-sm text-gray-500">Check new requests from advertisers.</p>
